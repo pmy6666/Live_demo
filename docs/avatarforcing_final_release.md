@@ -6,7 +6,7 @@
 本文只描述以下最终入口，不包含 EchoMimicV3、LatentSync、MuseTalk 或 GPT-SoVITS 在线服务：
 
 ```bash
-cd /home/qianustb/LiveTalking
+cd /home/qianustb/Live_demo
 /home/qianustb/envs/livetalking/bin/python start_avatarforcing.py
 ```
 
@@ -26,8 +26,8 @@ cd /home/qianustb/LiveTalking
 系统前提：Linux x86_64、Conda、Git、NVIDIA 驱动，以及能运行 CUDA 12.4 PyTorch wheel 的 NVIDIA GPU。系统还需要允许浏览器与服务器建立 WebRTC UDP 连接。
 
 ```bash
-git clone https://github.com/pmy6666/Live_demo.git LiveTalking
-cd LiveTalking
+git clone https://github.com/pmy6666/Live_demo.git
+cd Live_demo
 bash scripts/avatarforcing/prepare_final_demo.sh
 ```
 

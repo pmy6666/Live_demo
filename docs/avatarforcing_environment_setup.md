@@ -26,8 +26,8 @@ PyTorch 2.5.0 / torchvision 0.20.0 / torchaudio 2.5.0 的 CUDA 12.4 wheel；系�
 ## 2. 推荐：一键创建环境、下载权重并校验
 
 ```bash
-git clone https://github.com/pmy6666/Live_demo.git LiveTalking
-cd LiveTalking
+git clone https://github.com/pmy6666/Live_demo.git
+cd Live_demo
 bash scripts/avatarforcing/prepare_final_demo.sh
 ```
 
@@ -46,7 +46,7 @@ bash scripts/avatarforcing/prepare_final_demo.sh
 默认 Python 路径为：
 
 ```text
-<LiveTalking 仓库的父目录>/envs/livetalking/bin/python
+<Live_demo 仓库的父目录>/envs/livetalking/bin/python
 ```
 
 若需要将环境放在其他目录，在所有相关命令中设置同一个变量：
@@ -67,8 +67,8 @@ bash scripts/avatarforcing/prepare_final_demo.sh
 如果需要分别执行环境安装和权重下载：
 
 ```bash
-git clone https://github.com/pmy6666/Live_demo.git LiveTalking
-cd LiveTalking
+git clone https://github.com/pmy6666/Live_demo.git
+cd Live_demo
 bash scripts/avatarforcing/setup_env.sh
 bash scripts/avatarforcing/download_weights.sh
 ```
@@ -98,14 +98,14 @@ bash scripts/avatarforcing/download_weights.sh
 在服务器中执行：
 
 ```bash
-cd /path/to/LiveTalking
+cd /path/to/Live_demo
 ../envs/livetalking/bin/python start_avatarforcing.py
 ```
 
-如果仓库位于 `/home/qianustb/LiveTalking`，对应命令就是：
+如果仓库位于 `/home/qianustb/Live_demo`，对应命令就是：
 
 ```bash
-cd /home/qianustb/LiveTalking
+cd /home/qianustb/Live_demo
 /home/qianustb/envs/livetalking/bin/python start_avatarforcing.py
 ```
 
