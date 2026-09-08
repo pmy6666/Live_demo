@@ -33,6 +33,6 @@ third_party/LatentSync/temp*/
 .runtime/
 release/artifacts/
 AvatarForcing/
-cache/avatarforcing_tts/
+cache/avatarforcing_tts/*_manifest.json
 *.log
 dist

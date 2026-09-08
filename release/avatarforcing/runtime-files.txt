@@ -53,6 +53,7 @@ assets/avatars/avatar_female.png
 assets/avatars/avatar_male.png
 bilibili_downloads/Female.wav
 bilibili_downloads/male.mp3
+cache/avatarforcing_tts
 
 AvatarForcing/configs/inference.yaml
 AvatarForcing/inference.py
@@ -70,7 +71,6 @@ release/avatarforcing/patches/avatarforcing-runtime.patch
 release/avatarforcing/patches/avatarforcing-talking-only.patch
 scripts/avatarforcing/setup_env.sh
 scripts/avatarforcing/download_weights.sh
-scripts/avatarforcing/download_runtime_cache.sh
 scripts/avatarforcing/package_runtime_cache.sh
 scripts/avatarforcing/build_avatarforcing_tts_cache.py
 

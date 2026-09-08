@@ -53,37 +53,22 @@ bash scripts/avatarforcing/download_weights.sh
 
 这些权重均被 `.gitignore` 排除，不会进入 Git 历史。
 
-## 4. 下载离线语音缓存
+## 4. 校验离线语音缓存
 
-发布者需要先把 `avatarforcing_tts_cache_v1.tar.gz` 上传为仓库 Release 附件。新机器执行：
-
-```bash
-bash scripts/avatarforcing/download_runtime_cache.sh
-```
-
-默认下载地址固定为本仓库的 `avatarforcing-final-v1` Release；如需从镜像下载，可通过
-`AVATARFORCING_CACHE_URL` 覆盖。
-
-下载脚本固定校验 SHA-256：
-
-```text
-5e25ce6e854518933beadf310c625ff5d2b9659b4dfa38d254947165578eedeb
-```
-
-解压后可再次检查 520 个 PCM 文件的格式和完整性：
+520 个离线 PCM 文件直接随仓库发布，不属于模型权重，无需额外下载。克隆后执行：
 
 ```bash
 ../envs/livetalking/bin/python \
   scripts/avatarforcing/build_avatarforcing_tts_cache.py verify
 ```
 
-发布者在当前机器生成附件的命令：
+如需制作独立备份包：
 
 ```bash
 bash scripts/avatarforcing/package_runtime_cache.sh
 ```
 
-产物位于 `release/artifacts/avatarforcing_tts_cache_v1.tar.gz`，该目录不会提交到 Git。
+产物位于 `release/artifacts/avatarforcing_tts_cache_v1.tar.gz`，该备份包不会重复提交到 Git。
 
 ## 5. 启动前校验与运行
 
@@ -136,13 +121,7 @@ ssh -N -L 8010:127.0.0.1:8010 qianustb@10.23.39.169
 - `AvatarForcing/` 克隆目录；
 - `AvatarForcing/pretrained_dir/` 权重；
 - `.runtime/` face-alignment 权重；
-- `cache/avatarforcing_tts/` 和 `release/artifacts/`；
+- `release/artifacts/`；
 - 其他模型目录、实验输出、日志和 Python 环境。
-
-在仓库 Release 页面单独上传：
-
-```text
-release/artifacts/avatarforcing_tts_cache_v1.tar.gz
-```
 
 公开发布前还应确认男女角色图片、参考音频和缓存声音素材具备公开分发授权。

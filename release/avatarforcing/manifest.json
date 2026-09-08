@@ -62,13 +62,12 @@
     }
   ],
   "runtime_cache": {
-    "archive": "avatarforcing_tts_cache_v1.tar.gz",
-    "sha256": "5e25ce6e854518933beadf310c625ff5d2b9659b4dfa38d254947165578eedeb",
-    "bytes": 130636235,
     "files": 520,
+    "bytes": 150316800,
     "female_files": 260,
     "male_files": 260,
-    "install_path": "cache/avatarforcing_tts"
+    "install_path": "cache/avatarforcing_tts",
+    "distribution": "tracked repository files"
   },
   "file_inventory": "release/avatarforcing/runtime-files.txt",
   "verification": [
