@@ -30,7 +30,7 @@ import glob
 import resampy
 import queue
 from queue import Queue
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from io import BytesIO
 import soundfile as sf
 import asyncio
@@ -47,6 +47,7 @@ from fractions import Fraction
 
 from utils.logger import logger
 from utils.image import read_imgs,mirror_index
+from choice.playback_controller import PlaybackController
 
 # class State(Enum):
 #     INIT=0
@@ -59,6 +60,14 @@ class AudioFrameData:
     data: NDArray[np.float32]
     type: int = 0  # 默认值
     userdata: dict = field(default_factory=dict)
+
+
+def uses_avatarforcing_offline_tts_cache(opt) -> bool:
+    return (
+        getattr(opt, "model", "") == "avatarforcing"
+        and getattr(opt, "voice_group", "") in {"female", "male"}
+    )
+
 
 class BaseAvatar:
     def __init__(self, opt):
@@ -84,6 +93,8 @@ class BaseAvatar:
         self.batch_size = opt.batch_size
         self.res_frame_queue = Queue(self.batch_size*2)
         self.render_event = Event()
+        self._choice_audio_recorders = {}
+        self.playback_controller = PlaybackController()
 
         _tts_modules = {
             'edgetts': 'tts.edge',
@@ -98,7 +109,13 @@ class BaseAvatar:
             'qwentts': 'tts.qwentts'
         }
 
-        if opt.tts in _tts_modules:
+        if uses_avatarforcing_offline_tts_cache(opt):
+            logger.info(
+                "AvatarForcing offline TTS cache enabled: voice_group=%s; "
+                "realtime TTS client initialization skipped",
+                opt.voice_group,
+            )
+        elif opt.tts in _tts_modules:
             importlib.import_module(_tts_modules[opt.tts])
             self.tts = registry.create("tts", opt.tts, opt=opt, parent=self)
         else:
@@ -124,9 +141,15 @@ class BaseAvatar:
     # 如果系统没有使用 pipeline，或者为了向后兼容原来的 ttsreal.py
     def put_msg_txt(self, msg, datainfo:dict={}):
         if hasattr(self, 'tts'):
-            self.tts.put_msg_txt(msg, datainfo)
+            payload = dict(datainfo or {})
+            payload.setdefault("playback_id", self.current_playback_token())
+            self.tts.put_msg_txt(msg, payload)
     
     def put_audio_frame(self, audio_chunk:NDArray[np.float32], datainfo:dict={}): # 16khz 20ms pcm
+        playback_id = (datainfo or {}).get("playback_id")
+        if playback_id is not None and not self.playback_controller.is_current(int(playback_id)):
+            return
+        self._capture_choice_audio(audio_chunk, datainfo)
         if hasattr(self, 'asr'):
             self.asr.put_audio_frame(audio_chunk, datainfo)
 
@@ -180,12 +203,96 @@ class BaseAvatar:
 
         return stream
 
-    def flush_talk(self):
+    def flush_talk(self, reason: str = "interrupt") -> int:
+        playback_id = self.playback_controller.begin(reason)
         if hasattr(self, 'tts') and hasattr(self.tts, 'flush_talk'):
             self.tts.flush_talk()
         if hasattr(self, 'asr') and hasattr(self.asr, 'flush_talk'):
             self.asr.flush_talk()
-        self.custom_audiotype = 0  
+        self._clear_queue(self.res_frame_queue)
+        self.custom_audiotype = 0
+        if hasattr(self, 'output') and hasattr(self.output, 'invalidate_playback'):
+            self.output.invalidate_playback(playback_id)
+        return playback_id
+
+    def bump_playback_token(self) -> int:
+        return self.playback_controller.begin("legacy_bump")
+
+    def current_playback_token(self) -> int:
+        return self.playback_controller.current_id()
+
+    @staticmethod
+    def _clear_queue(target_queue: Queue):
+        try:
+            while True:
+                target_queue.get_nowait()
+        except queue.Empty:
+            return
+
+    def _capture_choice_audio(self, audio_chunk: NDArray[np.float32], datainfo: dict):
+        cache_meta = datainfo.get("choice_audio_cache")
+        if not cache_meta or not cache_meta.get("capture"):
+            return
+
+        cache_key = cache_meta.get("cache_key")
+        if not cache_key:
+            return
+
+        status = datainfo.get("status")
+        if status == "start" or cache_key not in self._choice_audio_recorders:
+            self._choice_audio_recorders[cache_key] = []
+
+        if audio_chunk.size > 0 and not np.allclose(audio_chunk, 0.0):
+            self._choice_audio_recorders[cache_key].append(audio_chunk.copy())
+
+        if status == "end":
+            chunks = self._choice_audio_recorders.pop(cache_key, [])
+            if not chunks:
+                return
+            audio_stream = np.concatenate(chunks).astype(np.float32, copy=False)
+            store_fn = cache_meta.get("store")
+            if store_fn:
+                try:
+                    store_fn(cache_key, audio_stream)
+                except Exception:
+                    logger.exception("store choice audio cache failed")
+
+    def play_audio_stream(self, audio_stream: NDArray[np.float32], datainfo: dict = None, playback_token: int = None):
+        datainfo = dict(datainfo or {})
+        if audio_stream is None or audio_stream.size == 0:
+            return
+
+        if playback_token is None:
+            playback_token = self.current_playback_token()
+        datainfo.setdefault("playback_id", playback_token)
+
+        stream = np.asarray(audio_stream, dtype=np.float32)
+        idx = 0
+        total = stream.shape[0]
+        first = True
+
+        while idx < total:
+            if playback_token != self.current_playback_token():
+                return
+            frame = stream[idx:idx + self.chunk]
+            if frame.shape[0] < self.chunk:
+                padded = np.zeros(self.chunk, dtype=np.float32)
+                padded[:frame.shape[0]] = frame
+                frame = padded
+
+            eventpoint = {}
+            if first:
+                eventpoint["status"] = "start"
+                first = False
+            eventpoint.update(datainfo)
+            self.put_audio_frame(frame, eventpoint)
+            idx += self.chunk
+
+        if playback_token != self.current_playback_token():
+            return
+        end_event = {"status": "end"}
+        end_event.update(datainfo)
+        self.put_audio_frame(np.zeros(self.chunk, dtype=np.float32), end_event)
 
     # def flush(self):
     #     self.flush_talk()
@@ -198,13 +305,22 @@ class BaseAvatar:
             return
         for item in self.opt.customopt:
             logger.info(item)
+            audiotype = item['audiotype']
             input_img_list = glob.glob(os.path.join(item['imgpath'], '*.[jpJP][pnPN]*[gG]'))
             input_img_list = sorted(input_img_list, key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
-            self.custom_img_cycle[item['audiotype']] = read_imgs(input_img_list)
+            if not input_img_list:
+                logger.warning("custom video frames not found for audiotype=%s path=%s", audiotype, item.get('imgpath'))
+            else:
+                self.custom_img_cycle[audiotype] = read_imgs(input_img_list)
+                self.custom_index[audiotype] = 0
+
             if item.get('audiopath'):
-                self.custom_audio_cycle[item['audiotype']], sample_rate = sf.read(item['audiopath'], dtype='float32')
-                self.custom_audio_index[item['audiotype']] = 0
-            self.custom_index[item['audiotype']] = 0
+                if not os.path.exists(item['audiopath']):
+                    logger.warning("custom audio file not found for audiotype=%s path=%s", audiotype, item['audiopath'])
+                    continue
+                self.custom_audio_cycle[audiotype], sample_rate = sf.read(item['audiopath'], dtype='float32')
+                self.custom_audio_index[audiotype] = 0
+                self.custom_index.setdefault(audiotype, 0)
             # self.custom_opt[item['audiotype']] = item
 
     def init_customindex(self):
@@ -356,12 +472,12 @@ class BaseAvatar:
         logger.info('baseavatar inference thread stop')
 
     def process_frames(self,quit_event):
-        enable_transition = False  # 设置为False禁用过渡效果，True启用
+        enable_transition = True
         
         _last_speaking = False
         _transition_start = time.time()
         if enable_transition:
-            _transition_duration = 0.1  # 过渡时间
+            _transition_duration = 0.08
             _last_silent_frame = None  # 静音帧缓存
             _last_speaking_frame = None  # 说话帧缓存
 
@@ -421,8 +537,6 @@ class BaseAvatar:
                 else:
                     combine_frame = current_frame
 
-            cv2.putText(combine_frame, "LiveTalking", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (128,128,128), 1)
-            
             # 使用统一输出接口推送视频帧
             self.output.push_video_frame(combine_frame)
             self.record_video_data(combine_frame)
@@ -474,4 +588,3 @@ class BaseAvatar:
 
         process_quit_event.set()
         process_thread.join()
-

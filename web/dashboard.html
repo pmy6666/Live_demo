@@ -3,103 +3,689 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>livetalking数字人交互平台</title>
+    <title>LiveTalking 数字人控制台</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary-color: #4361ee;
-            --secondary-color: #3f37c9;
-            --accent-color: #4895ef;
-            --background-color: #f8f9fa;
-            --card-bg: #ffffff;
-            --text-color: #212529;
-            --border-radius: 10px;
-            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --brand: #2f8cff;
+            --brand-dark: #1066e8;
+            --brand-soft: rgba(47, 140, 255, 0.16);
+            --surface: rgba(5, 21, 58, 0.78);
+            --surface-strong: rgba(8, 28, 74, 0.94);
+            --border: rgba(72, 154, 255, 0.26);
+            --text: #eef7ff;
+            --muted: #93aee1;
+            --success: #21f0b6;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --cyan: #21d8ff;
+            --violet: #b061ff;
+            --shadow: 0 24px 70px rgba(0, 10, 40, 0.46);
+            --radius-lg: 18px;
+            --radius-md: 14px;
+            --radius-sm: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
+            margin: 0;
             min-height: 100vh;
-            padding-top: 20px;
+            color: var(--text);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background:
+                linear-gradient(rgba(47, 140, 255, 0.055) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(47, 140, 255, 0.055) 1px, transparent 1px),
+                radial-gradient(circle at 48% 18%, rgba(45, 126, 255, 0.24), transparent 34%),
+                radial-gradient(circle at 14% 86%, rgba(0, 213, 255, 0.16), transparent 28%),
+                radial-gradient(circle at 84% 86%, rgba(168, 80, 255, 0.16), transparent 30%),
+                linear-gradient(180deg, #02091e 0%, #041334 48%, #03112e 100%);
+            background-size: 56px 56px, 56px 56px, auto, auto, auto, auto;
         }
 
-        .dashboard-container {
-            max-width: 1400px;
+        .app-shell {
+            max-width: 1680px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 12px 24px 18px;
         }
 
-        .card {
-            background-color: var(--card-bg);
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            border: none;
-            margin-bottom: 20px;
-            overflow: hidden;
+        .hero {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 12px;
         }
 
-        .card-header {
-            background-color: var(--primary-color);
-            color: white;
+        .hero h1 {
+            font-size: clamp(1.35rem, 2vw, 1.78rem);
+            font-weight: 700;
+            margin: 0 0 4px;
+            letter-spacing: 0;
+        }
+
+        .hero p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 13px;
+            border-radius: 999px;
+            background: rgba(5, 22, 60, 0.76);
+            border: 1px solid rgba(47, 140, 255, 0.28);
+            box-shadow: 0 0 24px rgba(33, 216, 255, 0.12);
+            color: #b9dcff;
             font-weight: 600;
-            padding: 15px 20px;
-            border-bottom: none;
+            white-space: nowrap;
         }
 
-        .video-container {
+        .page-panel {
+            display: none;
+        }
+
+        .page-panel.active {
+            display: block;
+        }
+
+        .card-panel {
+            background: var(--surface);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+        }
+
+        .selection-panel {
+            padding: 28px;
+        }
+
+        .selection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .selection-header h2 {
+            margin: 0 0 8px;
+            font-size: 1.65rem;
+            font-weight: 700;
+        }
+
+        .selection-header p,
+        .selection-note {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 360px));
+            justify-content: start;
+            gap: 18px;
+        }
+
+        .avatar-card {
             position: relative;
-            width: 100%;
-            background-color: #000;
-            border-radius: var(--border-radius);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.88);
+            color: #122033;
             overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .avatar-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 38px rgba(17, 73, 216, 0.14);
+            border-color: rgba(17, 73, 216, 0.28);
+        }
+
+        .avatar-card:focus-visible,
+        .choice-btn:focus-visible {
+            outline: 3px solid var(--brand);
+            outline-offset: 3px;
+        }
+
+        .avatar-card:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .avatar-card:disabled:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: var(--border);
+        }
+
+        .avatar-card.selected {
+            border-color: rgba(17, 73, 216, 0.55);
+            box-shadow: 0 0 0 4px rgba(17, 73, 216, 0.1), 0 20px 42px rgba(17, 73, 216, 0.14);
+        }
+
+        .avatar-preview {
+            position: relative;
+            background: linear-gradient(160deg, #dfeafe 0%, #f5f9ff 100%);
+            overflow: hidden;
+        }
+
+        .avatar-preview img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
+
+        .avatar-card-body {
+            padding: 16px 16px 18px;
+        }
+
+        .avatar-card-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .avatar-card-title h3 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .avatar-tag {
+            font-size: 0.75rem;
+            color: var(--brand);
+            background: var(--brand-soft);
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-weight: 700;
+        }
+
+        .avatar-card-body p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+            min-height: 44px;
+        }
+
+        .avatar-check {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--brand);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 22px rgba(17, 73, 216, 0.16);
+        }
+
+        .avatar-card.selected .avatar-check {
+            display: inline-flex;
+        }
+
+        .selection-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .camera-capture-panel {
+            display: none;
+            margin-top: 22px;
+            padding: 20px;
+            border: 1px solid rgba(33, 216, 255, 0.34);
+            border-radius: 18px;
+            background: rgba(2, 14, 42, 0.82);
+        }
+
+        .camera-capture-panel.active {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr);
+            gap: 20px;
+        }
+
+        .camera-stage {
+            position: relative;
+            min-height: 360px;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            border-radius: 16px;
+            background: #010712;
+            border: 1px solid rgba(72, 154, 255, 0.35);
+        }
+
+        .camera-stage video,
+        .camera-stage img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+        }
+
+        .camera-stage video {
+            transform: scaleX(-1);
+        }
+
+        .camera-guide {
+            position: absolute;
+            inset: 9% 28%;
+            border: 2px dashed rgba(238, 247, 255, 0.84);
+            border-radius: 48% 48% 42% 42%;
+            pointer-events: none;
+            box-shadow: 0 0 0 999px rgba(0, 5, 18, 0.2);
+        }
+
+        .camera-countdown {
+            position: absolute;
+            inset: 0;
+            display: none;
+            place-items: center;
+            font-size: clamp(4rem, 12vw, 8rem);
+            font-weight: 800;
+            color: #fff;
+            background: rgba(0, 7, 22, 0.36);
+            text-shadow: 0 4px 30px rgba(0, 0, 0, 0.75);
+        }
+
+        .camera-countdown.active {
+            display: grid;
+        }
+
+        .camera-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .camera-controls h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .camera-help,
+        .camera-status {
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .camera-status {
+            min-height: 48px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(3, 18, 49, 0.72);
+        }
+
+        .camera-status.error {
+            color: #fecaca;
+            border: 1px solid rgba(220, 38, 38, 0.5);
+        }
+
+        .camera-actions {
+            display: grid;
+            gap: 10px;
+        }
+
+        .camera-actions .btn {
+            min-height: 44px;
+        }
+
+        .camera-offline-mode .interaction-card {
+            display: none;
+        }
+
+        .camera-offline-mode .video-shell:not(.has-custom-size) {
+            width: min(100%, 620px);
+            height: auto;
+            aspect-ratio: 1 / 1;
+        }
+
+        .conversation-layout {
+            display: grid;
+            grid-template-columns: 112px minmax(0, 1fr) 260px;
+            gap: 14px;
+        }
+
+        .conversation-nav {
+            min-height: 100%;
+            padding: 14px 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 18px;
+        }
+
+        .nav-rail {
+            display: grid;
+            gap: 14px;
+        }
+
+        .rail-item {
+            width: 100%;
+            min-height: 96px;
+            border: 1px solid rgba(72, 154, 255, 0.24);
+            border-radius: 14px;
+            background: rgba(5, 24, 64, 0.5);
+            color: #a9c4ef;
+            display: grid;
+            place-items: center;
+            gap: 6px;
+            padding: 12px 8px;
+            font-weight: 700;
+        }
+
+        .rail-item.active {
+            color: #dff6ff;
+            border-color: rgba(33, 216, 255, 0.72);
+            background: linear-gradient(145deg, rgba(33, 216, 255, 0.2), rgba(47, 140, 255, 0.14));
+            box-shadow: 0 0 24px rgba(33, 216, 255, 0.18), inset 3px 0 0 rgba(33, 216, 255, 0.92);
+        }
+
+        .rail-item i {
+            font-size: 1.8rem;
+            color: #58c8ff;
+        }
+
+        .rail-controls {
+            display: grid;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .rail-control-btn {
+            width: 100%;
+            min-height: 74px;
+            border-radius: 12px;
+            padding: 10px 8px;
+            font-weight: 800;
+            font-size: 0.86rem;
+            line-height: 1.25;
+            display: grid;
+            place-items: center;
+            gap: 6px;
+            white-space: normal;
+        }
+
+        .rail-control-btn i {
+            font-size: 1.25rem;
+            margin: 0 !important;
+        }
+
+        .conversation-main,
+        .conversation-side {
+            min-width: 0;
+        }
+
+        .conversation-panel {
+            padding: 12px;
+        }
+
+        .conversation-main {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .conversation-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .selected-avatar-summary {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .selected-avatar-thumb {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: linear-gradient(160deg, rgba(33, 216, 255, 0.24), rgba(47, 140, 255, 0.14));
+            flex-shrink: 0;
+        }
+
+        .selected-avatar-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .selected-avatar-meta h2 {
+            margin: 0 0 3px;
+            font-size: 1.08rem;
+            font-weight: 700;
+        }
+
+        .selected-avatar-meta p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .video-viewport-wrap {
+            width: 100%;
             display: flex;
             justify-content: center;
-            align-items: center;
+            min-width: 0;
         }
 
-        video {
+        .video-shell {
+            position: relative;
+            border-radius: 22px;
+            background:
+                linear-gradient(180deg, rgba(64, 113, 203, 0.18), rgba(1, 9, 31, 0.18)),
+                #020816;
+            width: 100%;
+            height: clamp(410px, 54vh, 580px);
+            min-width: min(280px, 100%);
+            min-height: 220px;
             max-width: 100%;
-            max-height: 100%;
+            overflow: hidden;
+            padding: 6px;
+            border: 1px solid rgba(72, 154, 255, 0.36);
+            box-shadow: inset 0 0 0 1px rgba(33, 216, 255, 0.12), 0 0 30px rgba(47, 140, 255, 0.16);
+        }
+
+        #video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
             display: block;
-            border-radius: var(--border-radius);
+            width: auto;
+            height: auto;
+            max-width: none;
+            max-height: none;
+            object-fit: contain;
+            transform: translate(-50%, -50%) scale(var(--video-scale, 1));
+            transform-origin: center;
+            border-radius: 14px;
+            background: #000;
         }
 
-        .controls-container {
-            padding: 20px;
+        .video-resize-handle {
+            position: absolute;
+            z-index: 6;
+            right: 2px;
+            bottom: 2px;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border: 0;
+            border-radius: 10px 0 14px 0;
+            color: #8ddfff;
+            background: linear-gradient(135deg, transparent 35%, rgba(5, 24, 64, 0.9) 36%);
+            cursor: nwse-resize;
+            touch-action: none;
+            display: grid;
+            place-items: end;
         }
 
-        .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+        .video-resize-handle i {
+            margin: 0 7px 6px 0;
+            font-size: 1rem;
+            pointer-events: none;
         }
 
-        .btn-primary:hover {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
+        .video-resize-handle:hover,
+        .video-resize-handle:focus-visible {
+            color: #fff;
+            background: linear-gradient(135deg, transparent 28%, rgba(13, 92, 174, 0.96) 29%);
         }
 
-        .btn-outline-primary {
-            color: var(--primary-color);
-            border-color: var(--primary-color);
+        .video-resize-handle:focus-visible {
+            outline: 3px solid var(--cyan);
+            outline-offset: -3px;
         }
 
-        .btn-outline-primary:hover {
-            background-color: var(--primary-color);
-            color: white;
+        .video-shell.is-resizing {
+            border-color: var(--cyan);
+            box-shadow: inset 0 0 0 1px rgba(33, 216, 255, 0.5), 0 0 30px rgba(33, 216, 255, 0.24);
+            user-select: none;
         }
 
-        .form-control {
-            border-radius: var(--border-radius);
-            padding: 10px 15px;
-            border: 1px solid #ced4da;
+        .video-resize-hint {
+            position: absolute;
+            z-index: 5;
+            right: 42px;
+            bottom: 8px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            color: #cbeeff;
+            background: rgba(3, 18, 49, 0.82);
+            border: 1px solid rgba(33, 216, 255, 0.3);
+            font-size: 0.72rem;
+            line-height: 1.2;
+            pointer-events: none;
         }
 
-        .form-control:focus {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+        .video-shell.has-custom-size .video-resize-hint {
+            display: none;
+        }
+
+        .recording-indicator {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(220, 38, 38, 0.9);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .recording-indicator.active {
+            display: inline-flex;
+        }
+
+        .recording-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #fff;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.25; }
+            100% { opacity: 1; }
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .conversation-panel > .control-grid {
+            display: none;
+        }
+
+        .settings-panel {
+            margin-top: 0;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: rgba(4, 18, 51, 0.82);
+            border: 1px solid rgba(72, 154, 255, 0.2);
+        }
+
+        .settings-panel .form-label {
+            color: #d9e9ff;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .viewport-setting-row {
+            margin-bottom: 8px;
+        }
+
+        .viewport-setting-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .viewport-setting-meta .form-label {
+            margin-bottom: 4px;
+        }
+
+        .viewport-size-status {
+            color: var(--cyan);
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        .viewport-reset-btn {
+            min-height: 36px;
+            padding: 5px 10px;
+            font-size: 0.78rem;
+        }
+
+        .settings-panel .form-check {
+            display: none;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(5, 24, 64, 0.76);
+            color: var(--text);
+            border: 1px solid rgba(72, 154, 255, 0.24);
+            font-weight: 600;
         }
 
         .status-indicator {
@@ -107,297 +693,886 @@
             height: 10px;
             border-radius: 50%;
             display: inline-block;
-            margin-right: 5px;
         }
 
         .status-connected {
-            background-color: #28a745;
+            background: var(--success);
         }
 
         .status-disconnected {
-            background-color: #dc3545;
+            background: var(--danger);
         }
 
         .status-connecting {
-            background-color: #ffc107;
+            background: var(--warning);
+        }
+
+        .side-card {
+            padding: 16px;
+            height: 100%;
+        }
+
+        .side-info {
+            display: grid;
+            gap: 16px;
+        }
+
+        .side-info-title {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+
+        .side-info-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .side-info-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 0 0 12px;
+            border-bottom: 1px solid rgba(72, 154, 255, 0.16);
+            color: #b5c9ec;
+        }
+
+        .side-info-row span:first-child {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .side-info-row i {
+            color: #76b8ff;
+            font-size: 1.1rem;
+        }
+
+        .side-tip {
+            padding-top: 4px;
+        }
+
+        .side-tip p {
+            margin: 10px 0 0;
+            color: #a9bce1;
+            line-height: 1.6;
+            font-size: 0.9rem;
+        }
+
+        .nav-tabs {
+            border-bottom: none;
+            gap: 8px;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: var(--muted);
+            background: rgba(5, 24, 64, 0.72);
+            font-weight: 600;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: linear-gradient(135deg, var(--brand), var(--cyan));
+            color: #fff;
+        }
+
+        .tab-content {
+            margin-top: 18px;
         }
 
         .asr-container {
-            height: 300px;
+            height: 320px;
             overflow-y: auto;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: var(--border-radius);
-            border: 1px solid #ced4da;
+            padding: 14px;
+            background: rgba(3, 15, 42, 0.78);
+            border-radius: 14px;
+            border: 1px solid rgba(72, 154, 255, 0.22);
+            margin-bottom: 16px;
         }
 
         .asr-text {
             margin-bottom: 10px;
-            padding: 10px;
-            background-color: white;
-            border-radius: var(--border-radius);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 12px 14px;
+            background: rgba(9, 30, 75, 0.78);
+            border-radius: 10px;
+            box-shadow: 0 8px 22px rgba(0, 10, 40, 0.16);
+            line-height: 1.55;
         }
 
         .user-message {
-            background-color: #e3f2fd;
-            border-left: 4px solid var(--primary-color);
+            background: rgba(47, 140, 255, 0.16);
+            border-left: 4px solid var(--brand);
         }
 
         .system-message {
-            background-color: #f1f8e9;
-            border-left: 4px solid #8bc34a;
+            background: rgba(33, 240, 182, 0.12);
+            border-left: 4px solid var(--success);
         }
 
-        .recording-indicator {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background-color: rgba(220, 53, 69, 0.8);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+        .choice-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .conversation-panel > .choice-panel {
+            padding: 12px 10px 4px;
+            max-width: 1180px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .choice-status {
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(3, 15, 42, 0.76);
+            border: 1px solid rgba(72, 154, 255, 0.22);
+        }
+
+        .conversation-panel > .choice-panel .choice-status,
+        .conversation-panel > .choice-panel .ssvep-toolbar {
             display: none;
         }
 
-        .recording-indicator.active {
+        .choice-path {
+            color: var(--muted);
+            font-size: 0.88rem;
+            margin-bottom: 8px;
+        }
+
+        .choice-answer {
+            line-height: 1.55;
+            font-size: 0.96rem;
+        }
+
+        .choice-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            align-items: stretch;
+            column-gap: clamp(76px, 6vw, 132px);
+            width: 100%;
+            overflow: visible;
+        }
+
+        .ssvep-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(3, 15, 42, 0.72);
+            border: 1px solid rgba(72, 154, 255, 0.22);
+            flex-wrap: wrap;
+        }
+
+        .ssvep-switches {
             display: flex;
             align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
         }
 
-        .recording-indicator .blink {
-            width: 10px;
-            height: 10px;
-            background-color: #fff;
-            border-radius: 50%;
-            margin-right: 5px;
-            animation: blink 1s infinite;
+        .ssvep-toolbar .form-check {
+            min-height: auto;
+            margin-bottom: 0;
         }
 
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.3; }
-            100% { opacity: 1; }
+        .ssvep-hint {
+            color: var(--muted);
+            font-size: 0.82rem;
+            line-height: 1.45;
         }
 
-        .mode-switch {
-            margin-bottom: 20px;
-        }
-
-        .nav-tabs .nav-link {
-            color: var(--text-color);
-            border: none;
-            padding: 10px 20px;
-            border-radius: var(--border-radius) var(--border-radius) 0 0;
-        }
-
-        .nav-tabs .nav-link.active {
-            color: var(--primary-color);
-            background-color: var(--card-bg);
-            border-bottom: 3px solid var(--primary-color);
+        .choice-btn {
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            width: clamp(170px, 82%, 220px);
+            justify-self: center;
+            min-width: 0;
+            padding: 16px 20px 14px;
+            border: 1px solid rgba(33, 216, 255, 0.34);
+            background:
+                radial-gradient(circle at 16% 18%, rgba(33, 216, 255, 0.2), transparent 30%),
+                linear-gradient(135deg, rgba(13, 55, 114, 0.88), rgba(7, 24, 68, 0.92));
             font-weight: 600;
+            color: var(--text);
+            min-height: 118px;
+            box-shadow: 0 0 24px rgba(33, 216, 255, 0.14), inset 0 0 28px rgba(33, 216, 255, 0.08);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
         }
 
-        .tab-content {
-            padding: 20px;
-            background-color: var(--card-bg);
-            border-radius: 0 0 var(--border-radius) var(--border-radius);
+        .choice-btn::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 8px;
+            background: repeating-linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.98) 0 9px,
+                rgba(47, 140, 255, 0.98) 9px 18px
+            );
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 0.96;
         }
 
-        .settings-panel {
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: var(--border-radius);
-            margin-top: 15px;
+        .choice-btn::after {
+            content: "";
+            position: absolute;
+            inset: 8px;
+            border-radius: 6px;
+            box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.38);
+            pointer-events: none;
+        }
+
+        .choice-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(33, 216, 255, 0.7);
+            box-shadow: 0 0 30px rgba(33, 216, 255, 0.22), inset 0 0 28px rgba(33, 216, 255, 0.12);
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .choice-label {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 7px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .choice-text {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 7px;
+            min-width: 0;
+            max-width: 100%;
+            line-height: 1.35;
+            font-size: clamp(1rem, 1.28vw, 1.24rem);
+            font-weight: 800;
+            word-break: normal;
+            overflow-wrap: break-word;
+            text-wrap: balance;
+        }
+
+        .choice-number {
+            display: grid;
+            place-items: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 1px solid rgba(33, 216, 255, 0.72);
+            background: rgba(2, 12, 38, 0.55);
+            font-size: 1.62rem;
+            line-height: 1;
+            color: #dff7ff;
+            text-shadow: 0 0 18px rgba(33, 216, 255, 0.42);
+        }
+
+        .choice-ssvep-side {
+            display: inline-flex;
+            flex-direction: column-reverse;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            flex: 0 0 auto;
+        }
+
+        .ssvep-frequency-badge {
+            flex-shrink: 0;
+            min-width: 66px;
+            text-align: center;
+            border-radius: 6px;
+            padding: 4px 8px;
+            color: #c9f4ff;
+            background: rgba(33, 216, 255, 0.13);
+            border: 1px solid rgba(33, 216, 255, 0.38);
+            font-size: 0.78rem;
+            font-weight: 800;
+        }
+
+        .ssvep-stimulus {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            flex: none;
+            border-radius: 6px;
+            background: rgb(25, 25, 25);
+            border: 0;
+            opacity: 0.16;
+            mix-blend-mode: screen;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.16), 0 0 26px rgba(33, 216, 255, 0.2);
+            transition: none;
+            will-change: background-color;
+            pointer-events: none;
+        }
+
+        .ssvep-enabled .choice-btn.ssvep-locked {
+            outline: 4px solid rgba(245, 158, 11, 0.36);
+            border-color: var(--warning);
+        }
+
+        .choice-btn:nth-child(2) {
+            border-color: rgba(33, 240, 240, 0.38);
+            background:
+                radial-gradient(circle at 16% 18%, rgba(33, 240, 240, 0.2), transparent 30%),
+                linear-gradient(135deg, rgba(9, 91, 102, 0.86), rgba(6, 30, 68, 0.92));
+        }
+
+        .choice-btn:nth-child(2)::before {
+            background: repeating-linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.98) 0 9px,
+                rgba(33, 240, 126, 0.98) 9px 18px
+            );
+        }
+
+        .choice-btn:nth-child(3) {
+            border-color: rgba(176, 97, 255, 0.5);
+            background:
+                radial-gradient(circle at 16% 18%, rgba(176, 97, 255, 0.24), transparent 30%),
+                linear-gradient(135deg, rgba(69, 25, 116, 0.86), rgba(20, 15, 66, 0.94));
+        }
+
+        .choice-btn:nth-child(3)::before {
+            background: repeating-linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.98) 0 9px,
+                rgba(151, 74, 255, 0.98) 9px 18px
+            );
+        }
+
+        .choice-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .voice-record-btn {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background: var(--brand);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 14px 28px rgba(17, 73, 216, 0.25);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .voice-record-btn:hover {
+            transform: translateY(-2px);
+            background: var(--brand-dark);
+        }
+
+        .voice-record-btn i {
+            font-size: 1.55rem;
+        }
+
+        .voice-record-label {
+            text-align: center;
+            color: var(--muted);
+            margin-top: 12px;
+            font-size: 0.92rem;
+        }
+
+        .recording-pulse {
+            animation: pulse 1.4s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45);
+            }
+            70% {
+                box-shadow: 0 0 0 18px rgba(220, 38, 38, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+            }
         }
 
         .footer {
+            margin-top: 26px;
             text-align: center;
-            margin-top: 30px;
-            padding: 20px 0;
-            color: #6c757d;
-            font-size: 0.9rem;
+            color: var(--muted);
+            font-size: 0.92rem;
         }
-        
-        .voice-record-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background-color: var(--primary-color);
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            margin: 0 auto;
-        }
-        
-        .voice-record-btn:hover {
-            background-color: var(--secondary-color);
-            transform: scale(1.05);
-        }
-        
-        .voice-record-btn:active {
-            background-color: #dc3545;
-            transform: scale(0.95);
-        }
-        
-        .voice-record-btn i {
-            font-size: 24px;
-        }
-        
-        .voice-record-label {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 14px;
-            color: #6c757d;
-        }
-        
-        .video-size-control {
-            margin-top: 15px;
-        }
-        
-        .recording-pulse {
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+
+        @media (max-width: 991px) {
+            .camera-capture-panel.active {
+                grid-template-columns: 1fr;
             }
-            70% {
-                box-shadow: 0 0 0 15px rgba(220, 53, 69, 0);
+
+            .camera-stage {
+                min-height: 280px;
             }
-            100% {
-                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+
+            .conversation-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .conversation-nav {
+                min-height: auto;
+                flex-direction: row;
+            }
+
+            .nav-rail {
+                grid-auto-flow: column;
+                grid-auto-columns: minmax(84px, 1fr);
+                width: 100%;
+            }
+
+            .rail-item {
+                min-height: 78px;
+            }
+
+            .choice-grid {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .choice-btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-height: 920px) and (min-width: 992px) {
+            .app-shell {
+                padding-top: 8px;
+                padding-bottom: 10px;
+            }
+
+            .hero {
+                margin-bottom: 8px;
+            }
+
+            .hero h1 {
+                font-size: 1.45rem;
+            }
+
+            .hero p {
+                font-size: 0.82rem;
+            }
+
+            .conversation-layout {
+                grid-template-columns: 104px minmax(0, 1fr) 240px;
+                gap: 12px;
+            }
+
+            .conversation-main {
+                gap: 10px;
+            }
+
+            .conversation-panel {
+                padding: 10px;
+            }
+
+            .conversation-topbar {
+                margin-bottom: 8px;
+            }
+
+            .video-shell {
+                height: clamp(390px, 50vh, 520px);
+            }
+
+            .settings-panel {
+                margin-top: 8px;
+                padding: 8px 12px;
+            }
+
+            .settings-panel .mb-3 {
+                margin-bottom: 6px !important;
+            }
+
+            .choice-btn {
+                width: clamp(160px, 82%, 205px);
+                min-height: 108px;
+                padding: 12px 16px 10px;
+            }
+
+            .choice-number {
+                width: 34px;
+                height: 34px;
+                font-size: 1.38rem;
+            }
+
+            .rail-item {
+                min-height: 74px;
+                padding: 8px 6px;
+            }
+
+            .rail-control-btn {
+                min-height: 58px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .app-shell {
+                padding: 20px 14px 28px;
+            }
+
+            .hero {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .selection-header,
+            .conversation-topbar,
+            .selection-actions {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .control-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .video-shell {
+                min-height: 220px;
+            }
+
+            .conversation-nav {
+                display: none;
+            }
+
+            .choice-btn {
+                min-height: 132px;
+                padding: 18px;
+            }
+
+            .choice-number {
+                font-size: 2.6rem;
+            }
+
+            .choice-ssvep-side {
+                flex-basis: 76px;
+            }
+
+            .ssvep-stimulus {
+                width: 62px;
+                height: 62px;
+                flex-basis: 62px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <div class="row">
-            <div class="col-12">
-                <h1 class="text-center mb-4">livetalking数字人交互平台</h1>
+    <div class="app-shell">
+        <div class="hero">
+            <div>
+                <h1>数字人模型DEMO</h1>
+                <p>先选择角色，再进入专属数字人对话界面。</p>
+            </div>
+            <div class="hero-badge">
+                <i class="bi bi-broadcast-pin"></i>
+                <span>SSVEP 视觉选择模式</span>
             </div>
         </div>
 
-        <div class="row">
-            <!-- 视频区域 -->
-            <div class="col-lg-8">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="status-indicator status-disconnected" id="connection-status"></span>
-                            <span id="status-text">未连接</span>
+        <section id="avatar-selection-page" class="page-panel active">
+            <div class="card-panel selection-panel">
+                <div class="selection-header">
+                    <div>
+                        <h2>选择你要交谈的数字人</h2>
+                        <p>点击角色卡片进行选择，然后进入对话页面开始连接。</p>
+                    </div>
+                    <div class="selection-note" id="selection-note">当前未选择角色</div>
+                </div>
+                <div class="avatar-grid" id="avatar-grid"></div>
+                <section class="camera-capture-panel" id="camera-capture-panel" aria-labelledby="camera-capture-title">
+                    <div class="camera-stage">
+                        <video id="camera-preview" autoplay muted playsinline aria-label="摄像头镜像预览"></video>
+                        <img id="camera-photo-preview" alt="待上传的人像照片" hidden>
+                        <div class="camera-guide" id="camera-guide" aria-hidden="true"></div>
+                        <div class="camera-countdown" id="camera-countdown" aria-live="assertive"></div>
+                    </div>
+                    <div class="camera-controls">
+                        <h3 id="camera-capture-title">自拍或上传当前会话人像</h3>
+                        <div class="camera-help">
+                            可使用摄像头自拍，也可上传 JPEG、PNG 或 WebP 图片。请确保画面中只有一张清晰正脸，并完整露出头部和肩部。
+                        </div>
+                        <fieldset>
+                            <legend class="form-label mb-2">选择离线缓存音色</legend>
+                            <div class="d-flex gap-3 flex-wrap">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="camera-voice-group" id="camera-voice-female" value="female" checked>
+                                    <label class="form-check-label" for="camera-voice-female">女声</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="camera-voice-group" id="camera-voice-male" value="male">
+                                    <label class="form-check-label" for="camera-voice-male">男声</label>
+                                </div>
+                            </div>
+                        </fieldset>
+                        <div class="camera-status" id="camera-status" role="status" aria-live="polite">正在请求摄像头权限…</div>
+                        <div class="camera-actions">
+                            <button type="button" class="btn btn-outline-info" id="camera-upload-image">
+                                <i class="bi bi-upload me-1"></i>选择本地图片
+                            </button>
+                            <input type="file" id="camera-upload-input" accept="image/jpeg,image/png,image/webp" hidden>
+                            <button type="button" class="btn btn-primary" id="camera-take-photo" disabled>
+                                <i class="bi bi-camera me-1"></i>3 秒后拍照
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" id="camera-retake" hidden>
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>重拍
+                            </button>
+                            <button type="button" class="btn btn-success" id="camera-confirm" hidden>
+                                <i class="bi bi-check-circle me-1"></i>确认并开始离线对话
+                            </button>
+                            <button type="button" class="btn btn-outline-light" id="camera-cancel">
+                                取消
+                            </button>
                         </div>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="video-container">
-                            <video id="video" autoplay playsinline></video>
-                            <div class="recording-indicator" id="recording-indicator">
-                                <div class="blink"></div>
-                                <span>录制中</span>
+                    <canvas id="camera-canvas" hidden></canvas>
+                </section>
+                <div class="selection-actions">
+                    <div class="selection-note"> </div>
+                    <button class="btn btn-primary btn-lg px-4" id="enter-chat-btn" disabled>
+                        <i class="bi bi-arrow-right-circle me-2"></i>进入对话
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="conversation-page" class="page-panel">
+            <div class="conversation-layout">
+                <aside class="card-panel conversation-nav" aria-label="系统导航">
+                    <div class="nav-rail">
+                        <button type="button" class="rail-item active">
+                            <i class="bi bi-house-fill"></i>
+                            <span>对话</span>
+                        </button>
+                        <button type="button" class="rail-item">
+                            <i class="bi bi-bar-chart-line"></i>
+                            <span>信号</span>
+                        </button>
+                        <button type="button" class="rail-item">
+                            <i class="bi bi-clipboard-data"></i>
+                            <span>历史</span>
+                        </button>
+                    </div>
+                    <div class="nav-rail">
+                        <button type="button" class="rail-item">
+                            <i class="bi bi-question-circle"></i>
+                            <span>帮助</span>
+                        </button>
+                    </div>
+                    <div class="rail-controls" aria-label="连接与录制控制">
+                        <button class="btn btn-primary rail-control-btn" id="start">
+                            <i class="bi bi-play-fill"></i>
+                            <span>开始连接</span>
+                        </button>
+                        <button class="btn btn-danger rail-control-btn" id="stop" style="display:none;">
+                            <i class="bi bi-stop-fill"></i>
+                            <span>停止连接</span>
+                        </button>
+                        <button class="btn btn-outline-primary rail-control-btn" id="btn_start_record">
+                            <i class="bi bi-record-fill"></i>
+                            <span>开始录制</span>
+                        </button>
+                        <button class="btn btn-outline-danger rail-control-btn" id="btn_stop_record" disabled>
+                            <i class="bi bi-stop-fill"></i>
+                            <span>停止录制</span>
+                        </button>
+                    </div>
+                </aside>
+                <div class="conversation-main">
+                    <div class="card-panel conversation-panel">
+                        <div class="conversation-topbar">
+                            <div class="selected-avatar-summary">
+                                <div class="selected-avatar-thumb">
+                                    <img id="selected-avatar-image" alt="当前角色">
+                                </div>
+                                <div class="selected-avatar-meta">
+                                    <h2 id="selected-avatar-name">未选择角色</h2>
+                                    <p id="selected-avatar-description">请选择角色后开始对话。</p>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <div class="status-pill">
+                                    <span class="status-indicator status-disconnected" id="connection-status"></span>
+                                    <span id="status-text">未连接</span>
+                                </div>
+                                <button class="btn btn-outline-primary" id="back-to-selection-btn">
+                                    <i class="bi bi-grid me-1"></i>重新选角
+                                </button>
                             </div>
                         </div>
-                        
-                        <div class="controls-container">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <button class="btn btn-primary w-100" id="start">
-                                        <i class="bi bi-play-fill"></i> 开始连接
-                                    </button>
-                                    <button class="btn btn-danger w-100" id="stop" style="display: none;">
-                                        <i class="bi bi-stop-fill"></i> 停止连接
-                                    </button>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <div class="d-flex">
-                                        <button class="btn btn-outline-primary flex-grow-1 me-2" id="btn_start_record">
-                                            <i class="bi bi-record-fill"></i> 开始录制
-                                        </button>
-                                        <button class="btn btn-outline-danger flex-grow-1" id="btn_stop_record" disabled>
-                                            <i class="bi bi-stop-fill"></i> 停止录制
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div class="row">
-                                <div class="col-12">
-                                    <div class="video-size-control">
-                                        <label for="video-size-slider" class="form-label">视频大小调节: <span id="video-size-value">100%</span></label>
-                                        <input type="range" class="form-range" id="video-size-slider" min="50" max="150" value="100">
+                        <div class="video-viewport-wrap" id="video-viewport-wrap">
+                            <div class="video-shell" id="video-viewport">
+                                <video id="video" autoplay playsinline></video>
+                                <audio id="audio" autoplay></audio>
+                                <div class="recording-indicator" id="recording-indicator">
+                                    <span class="recording-dot"></span>
+                                    <span>录音中</span>
+                                </div>
+                                <span class="video-resize-hint" aria-hidden="true">拖动边框或右下角</span>
+                                <button
+                                    type="button"
+                                    class="video-resize-handle"
+                                    id="video-resize-handle"
+                                    aria-label="拖动调整视频边框大小"
+                                    title="拖动调整视频边框大小"
+                                >
+                                    <i class="bi bi-arrows-angle-expand" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="control-grid">
+                        </div>
+
+                        <div class="choice-panel">
+                            <div class="choice-status">
+                                <div class="choice-path" id="choice-path">当前路径：未初始化</div>
+                                <div class="choice-answer" id="choice-answer">点击“开始连接”后，可以在这里使用三选一的引导式对话。</div>
+                            </div>
+                            <div class="ssvep-toolbar">
+                                <div class="ssvep-switches">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="ssvep-toggle">
+                                        <label class="form-check-label" for="ssvep-toggle">SSVEP 闪烁选择</label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="ssvep-original-color-toggle">
+                                        <label class="form-check-label" for="ssvep-original-color-toggle">原色显示</label>
                                     </div>
                                 </div>
+                                <div class="ssvep-hint" id="ssvep-status">关闭时按普通按钮选择；开启后选项刺激块按 LUT 正弦亮度闪烁。</div>
                             </div>
-                            
-                            <div class="settings-panel mt-3">
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-check form-switch mb-3">
-                                            <input class="form-check-input" type="checkbox" id="use-stun">
-                                            <label class="form-check-label" for="use-stun">使用STUN服务器</label>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="choice-grid" id="choice-options"></div>
+                            <div class="choice-actions">
+                                <button type="button" class="btn btn-primary" id="choice-init-btn">
+                                    <i class="bi bi-play-circle me-1"></i>开始选项对话
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" id="choice-reset-btn">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>重新开始
+                                </button>
                             </div>
+                            <div class="selection-note" id="choice-note">系统会优先返回文本和选项，并在后台尽量提前准备下一轮音频。</div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- 右侧交互 -->
-            <div class="col-lg-4">
-                <div class="card">
-                    <div class="card-header">
-                        <ul class="nav nav-tabs card-header-tabs" id="interaction-tabs" role="tablist">
+                <div class="conversation-side">
+                    <div class="card-panel side-card side-info">
+                        <h3 class="side-info-title">当前对话信息</h3>
+                        <div class="side-info-list">
+                            <div class="side-info-row">
+                                <span><i class="bi bi-chat-square-dots"></i>对话轮次</span>
+                                <strong>1 / 10</strong>
+                            </div>
+                            <div class="side-info-row">
+                                <span><i class="bi bi-person"></i>数字人</span>
+                                <strong id="side-avatar-name">小未来</strong>
+                            </div>
+                            <div class="side-info-row">
+                                <span><i class="bi bi-clock"></i>对话时长</span>
+                                <strong>00:00:18</strong>
+                            </div>
+                        </div>
+                        <div class="side-tip">
+                            <h3 class="side-info-title">操作提示</h3>
+                            <p>请专注注视下方选项区域，系统将通过 SSVEP 识别您的选择。</p>
+                        </div>
+                        <div class="settings-panel">
+                            <div class="viewport-setting-row">
+                                <div class="viewport-setting-meta">
+                                    <label for="video-viewport-width-slider" class="form-label">边框宽度</label>
+                                    <span id="video-viewport-width-value" class="viewport-size-status">100%</span>
+                                </div>
+                                <input type="range" class="form-range" id="video-viewport-width-slider" min="30" max="100" value="100">
+                            </div>
+                            <div class="viewport-setting-row">
+                                <div class="viewport-setting-meta">
+                                    <label for="video-viewport-height-slider" class="form-label">边框高度</label>
+                                    <span id="video-viewport-height-value" class="viewport-size-status">自动</span>
+                                </div>
+                                <input type="range" class="form-range" id="video-viewport-height-slider" min="220" max="720" value="520">
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                                <span id="video-viewport-size" class="viewport-size-status" role="status" aria-live="polite">自动尺寸</span>
+                                <button type="button" class="btn btn-outline-primary viewport-reset-btn" id="video-viewport-reset">
+                                    <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>重置边框
+                                </button>
+                            </div>
+                            <label for="video-size-slider" class="form-label">画面缩放: <span id="video-size-value">100%</span></label>
+                            <input type="range" class="form-range" id="video-size-slider" min="50" max="150" value="100">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="use-stun">
+                                <label class="form-check-label" for="use-stun">启用 STUN 网络穿透</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-panel side-card interaction-card">
+                        <ul class="nav nav-tabs" id="interaction-tabs" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="chat-tab" data-bs-toggle="tab" data-bs-target="#chat" type="button" role="tab" aria-controls="chat" aria-selected="true">对话模式</button>
+                                <button class="nav-link active" id="chat-tab" data-bs-toggle="tab" data-bs-target="#chat" type="button" role="tab" aria-controls="chat" aria-selected="true">聊天</button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="tts-tab" data-bs-toggle="tab" data-bs-target="#tts" type="button" role="tab" aria-controls="tts" aria-selected="false">朗读模式</button>
+                                <button class="nav-link" id="tts-tab" data-bs-toggle="tab" data-bs-target="#tts" type="button" role="tab" aria-controls="tts" aria-selected="false">播报</button>
                             </li>
                         </ul>
-                    </div>
-                    <div class="card-body">
+
                         <div class="tab-content" id="interaction-tabs-content">
-                            <!-- 对话模式 -->
                             <div class="tab-pane fade show active" id="chat" role="tabpanel" aria-labelledby="chat-tab">
-                                <div class="asr-container mb-3" id="chat-messages">
-                                    <div class="asr-text system-message">
-                                        系统: 欢迎使用livetalking，请点击"开始连接"按钮开始对话。
+                                <div class="asr-container" id="chat-messages">
+                                    <div class="asr-text system-message" id="chat-welcome-message">
+                                        系统：请选择角色并点击“开始连接”，然后即可开始与数字人对话。
                                     </div>
                                 </div>
-                                
+
                                 <form id="chat-form">
                                     <div class="input-group mb-3">
-                                        <textarea class="form-control" id="chat-message" rows="3" placeholder="输入您想对数字人说的话..."></textarea>
+                                        <textarea class="form-control" id="chat-message" rows="3" placeholder="输入你想对数字人说的话..."></textarea>
                                         <button class="btn btn-primary" type="submit">
-                                            <i class="bi bi-send"></i> 发送
+                                            <i class="bi bi-send"></i>
                                         </button>
                                     </div>
                                 </form>
-                                
-                                <!-- 按住说话按钮 -->
-                                <div class="voice-record-btn" id="voice-record-btn">
+
+                                <button class="voice-record-btn" id="voice-record-btn" type="button">
                                     <i class="bi bi-mic-fill"></i>
-                                </div>
-                                <div class="voice-record-label">按住说话，松开发送</div>
+                                </button>
+                                <div class="voice-record-label">按住说话，松开后自动发送</div>
                             </div>
-                            
-                            <!-- 朗读模式 -->
+
                             <div class="tab-pane fade" id="tts" role="tabpanel" aria-labelledby="tts-tab">
                                 <form id="echo-form">
                                     <div class="mb-3">
-                                        <label for="message" class="form-label">输入要朗读的文本</label>
-                                        <textarea class="form-control" id="message" rows="6" placeholder="输入您想让数字人朗读的文字..."></textarea>
+                                        <label for="message" class="form-label">输入要让数字人播报的文本</label>
+                                        <textarea class="form-control" id="message" rows="6" placeholder="输入文本后，数字人会直接播报..."></textarea>
                                     </div>
                                     <button type="submit" class="btn btn-primary w-100">
-                                        <i class="bi bi-volume-up"></i> 朗读文本
+                                        <i class="bi bi-volume-up me-1"></i>开始播报
                                     </button>
                                 </form>
                             </div>
@@ -405,369 +1580,16 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="footer">
-            <p>Made with ❤️ by Marstaos | Frontend & Performance Optimization</p>
-        </div>
+        <div class="footer">  </div>
     </div>
 
-    <!-- 隐藏的会话ID -->
     <input type="hidden" id="sessionid" value="0">
 
-
-    <script src="client.js"></script>
-    <script src="srs.sdk.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            $('#video-size-slider').on('input', function() {
-                const value = $(this).val();
-                $('#video-size-value').text(value + '%');
-                $('#video').css('width', value + '%');
-            });
-            function updateConnectionStatus(status) {
-                const statusIndicator = $('#connection-status');
-                const statusText = $('#status-text');
-                
-                statusIndicator.removeClass('status-connected status-disconnected status-connecting');
-                
-                switch(status) {
-                    case 'connected':
-                        statusIndicator.addClass('status-connected');
-                        statusText.text('已连接');
-                        break;
-                    case 'connecting':
-                        statusIndicator.addClass('status-connecting');
-                        statusText.text('连接中...');
-                        break;
-                    case 'disconnected':
-                    default:
-                        statusIndicator.addClass('status-disconnected');
-                        statusText.text('未连接');
-                        break;
-                }
-            }
-
-            // 添加聊天消息
-            function addChatMessage(message, type = 'user') {
-                const messagesContainer = $('#chat-messages');
-                const messageClass = type === 'user' ? 'user-message' : 'system-message';
-                const sender = type === 'user' ? '您' : '数字人';
-                
-                const messageElement = $(`
-                    <div class="asr-text ${messageClass}">
-                        ${sender}: ${message}
-                    </div>
-                `);
-                
-                messagesContainer.append(messageElement);
-                messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
-            }
-
-            // 开始/停止按钮
-            $('#start').click(function() {
-                updateConnectionStatus('connecting');
-                start();
-                $(this).hide();
-                $('#stop').show();
-                
-                // 添加定时器检查视频流是否已加载
-                let connectionCheckTimer = setInterval(function() {
-                    const video = document.getElementById('video');
-                    // 检查视频是否有数据
-                    if (video.readyState >= 3 && video.videoWidth > 0) {
-                        updateConnectionStatus('connected');
-                        clearInterval(connectionCheckTimer);
-                    }
-                }, 2000); // 每2秒检查一次
-                
-                // 60秒后如果还是连接中状态，就停止检查
-                setTimeout(function() {
-                    if (connectionCheckTimer) {
-                        clearInterval(connectionCheckTimer);
-                    }
-                }, 60000);
-            });
-
-            $('#stop').click(function() {
-                stop();
-                $(this).hide();
-                $('#start').show();
-                updateConnectionStatus('disconnected');
-            });
-
-            // 录制功能
-            $('#btn_start_record').click(function() {
-                console.log('Starting recording...');
-                fetch('/record', {
-                    body: JSON.stringify({
-                        type: 'start_record',
-                        sessionid: String(document.getElementById('sessionid').value),
-                    }),
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    method: 'POST'
-                }).then(function(response) {
-                    if (response.ok) {
-                        console.log('Recording started.');
-                        $('#btn_start_record').prop('disabled', true);
-                        $('#btn_stop_record').prop('disabled', false);
-                        $('#recording-indicator').addClass('active');
-                    } else {
-                        console.error('Failed to start recording.');
-                    }
-                }).catch(function(error) {
-                    console.error('Error:', error);
-                });
-            });
-
-            $('#btn_stop_record').click(function() {
-                console.log('Stopping recording...');
-                fetch('/record', {
-                    body: JSON.stringify({
-                        type: 'end_record',
-                        sessionid: String(document.getElementById('sessionid').value),
-                    }),
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    method: 'POST'
-                }).then(function(response) {
-                    if (response.ok) {
-                        console.log('Recording stopped.');
-                        $('#btn_start_record').prop('disabled', false);
-                        $('#btn_stop_record').prop('disabled', true);
-                        $('#recording-indicator').removeClass('active');
-                    } else {
-                        console.error('Failed to stop recording.');
-                    }
-                }).catch(function(error) {
-                    console.error('Error:', error);
-                });
-            });
-
-            $('#echo-form').on('submit', function(e) {
-                e.preventDefault();
-                var message = $('#message').val();
-                if (!message.trim()) return;
-                
-                console.log('Sending echo message:', message);
-                
-                fetch('/human', {
-                    body: JSON.stringify({
-                        text: message,
-                        type: 'echo',
-                        interrupt: true,
-                        sessionid: String(document.getElementById('sessionid').value),
-                    }),
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    method: 'POST'
-                });
-                
-                $('#message').val('');
-                addChatMessage(`已发送朗读请求: "${message}"`, 'system');
-            });
-
-            // 聊天模式表单提交
-            $('#chat-form').on('submit', function(e) {
-                e.preventDefault();
-                var message = $('#chat-message').val();
-                if (!message.trim()) return;
-                
-                console.log('Sending chat message:', message);
-                
-                fetch('/human', {
-                    body: JSON.stringify({
-                        text: message,
-                        type: 'chat',
-                        interrupt: true,
-                        sessionid: String(document.getElementById('sessionid').value),
-                    }),
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    method: 'POST'
-                });
-                
-                addChatMessage(message, 'user');
-                $('#chat-message').val('');
-            });
-
-            // 按住说话功能
-            let mediaRecorder;
-            let audioChunks = [];
-            let isRecording = false;
-            let recognition;
-            
-            // 检查浏览器是否支持语音识别
-            const isSpeechRecognitionSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-            
-            if (isSpeechRecognitionSupported) {
-                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-                recognition.continuous = true;
-                recognition.interimResults = true;
-                recognition.lang = 'zh-CN';
-                
-                recognition.onresult = function(event) {
-                    let interimTranscript = '';
-                    let finalTranscript = '';
-                    
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        if (event.results[i].isFinal) {
-                            finalTranscript += event.results[i][0].transcript;
-                        } else {
-                            interimTranscript += event.results[i][0].transcript;
-                            $('#chat-message').val(interimTranscript);
-                        }
-                    }
-                    
-                    if (finalTranscript) {
-                        $('#chat-message').val(finalTranscript);
-                    }
-                };
-                
-                recognition.onerror = function(event) {
-                    console.error('语音识别错误:', event.error);
-                };
-            }
-            
-            // 按住说话按钮事件
-            $('#voice-record-btn').on('mousedown touchstart', function(e) {
-                e.preventDefault();
-                startRecording();
-            }).on('mouseup mouseleave touchend', function() {
-                if (isRecording) {
-                    stopRecording();
-                }
-            });
-            
-            // 开始录音
-            function startRecording() {
-                if (isRecording) return;
-                
-                navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(function(stream) {
-                        audioChunks = [];
-                        mediaRecorder = new MediaRecorder(stream);
-                        
-                        mediaRecorder.ondataavailable = function(e) {
-                            if (e.data.size > 0) {
-                                audioChunks.push(e.data);
-                            }
-                        };
-                        
-                        mediaRecorder.start();
-                        isRecording = true;
-                        
-                        $('#voice-record-btn').addClass('recording-pulse');
-                        $('#voice-record-btn').css('background-color', '#dc3545');
-                        
-                        if (recognition) {
-                            recognition.start();
-                        }
-                    })
-                    .catch(function(error) {
-                        console.error('无法访问麦克风:', error);
-                        alert('无法访问麦克风，请检查浏览器权限设置。');
-                    });
-            }
-
-            function stopRecording() {
-                if (!isRecording) return;
-                
-                mediaRecorder.stop();
-                isRecording = false;
-                
-                // 停止所有音轨
-                mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                
-                // 视觉反馈恢复
-                $('#voice-record-btn').removeClass('recording-pulse');
-                $('#voice-record-btn').css('background-color', '');
-                
-                // 停止语音识别
-                if (recognition) {
-                    recognition.stop();
-                }
-                
-                // 获取识别的文本并发送
-                setTimeout(function() {
-                    const recognizedText = $('#chat-message').val().trim();
-                    if (recognizedText) {
-                        // 发送识别的文本
-                        fetch('/human', {
-                            body: JSON.stringify({
-                                text: recognizedText,
-                                type: 'chat',
-                                interrupt: true,
-                                sessionid: String(document.getElementById('sessionid').value),
-                            }),
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            method: 'POST'
-                        });
-                        
-                        addChatMessage(recognizedText, 'user');
-                        $('#chat-message').val('');
-                    }
-                }, 500); 
-            }
-
-            // WebRTC 相关功能
-            if (typeof window.onWebRTCConnected === 'function') {
-                const originalOnConnected = window.onWebRTCConnected;
-                window.onWebRTCConnected = function() {
-                    updateConnectionStatus('connected');
-                    if (originalOnConnected) originalOnConnected();
-                };
-            } else {
-                window.onWebRTCConnected = function() {
-                    updateConnectionStatus('connected');
-                };
-            }
-
-            // 当连接断开时更新状态
-            if (typeof window.onWebRTCDisconnected === 'function') {
-                const originalOnDisconnected = window.onWebRTCDisconnected;
-                window.onWebRTCDisconnected = function() {
-                    updateConnectionStatus('disconnected');
-                    if (originalOnDisconnected) originalOnDisconnected();
-                };
-            } else {
-                window.onWebRTCDisconnected = function() {
-                    updateConnectionStatus('disconnected');
-                };
-            }
-
-            // SRS WebRTC播放功能
-            var sdk = null; // 全局处理器，用于在重新发布时进行清理
-
-            function startPlay() {
-                // 关闭之前的连接
-                if (sdk) {
-                    sdk.close();
-                }
-                
-                sdk = new SrsRtcWhipWhepAsync();
-                $('#video').prop('srcObject', sdk.stream);
-                
-                var host = window.location.hostname;
-                var url = "http://" + host + ":1985/rtc/v1/whep/?app=live&stream=livestream";
-                
-                sdk.play(url).then(function(session) {
-                    console.log('WebRTC播放已启动，会话ID:', session.sessionid);
-                }).catch(function(reason) {
-                    sdk.close();
-                    console.error('WebRTC播放失败:', reason);
-                });
-            }
-        });
-    </script>
+    <script src="srs.sdk.js"></script>
+    <script src="client.js?v=20260801-image-upload-1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -37,23 +37,33 @@ class RTCManager:
         """
         self.opt = opt
         self.pcs: set = set()
+        self.session_pcs: dict[str, RTCPeerConnection] = {}
 
     async def handle_offer(self, request):
         """处理 WebRTC offer 信令"""
         params = await request.json()
         offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
-        if False: # 不再由 RTCManager 控制 max_session，让业务逻辑或SessionManager 控制
-            logger.info('reach max session')
-            return web.Response(
-                content_type="application/json",
-                text=json.dumps({"code": -1, "msg": "reach max session"}),
-            )
-
         #sessionid = _rand_session_id()
 
         # 通过 SessionManager 构建
-        sessionid = await session_manager.create_session(params)
+        try:
+            sessionid = await session_manager.create_session(params)
+        except RuntimeError as exc:
+            logger.warning("session creation rejected: %s", exc)
+            status = 429 if "maximum session limit" in str(exc) else 400
+            return web.Response(
+                status=status,
+                content_type="application/json",
+                text=json.dumps({"code": -1, "msg": str(exc)}),
+            )
+        except Exception as exc:
+            logger.warning("session creation failed: %s", exc)
+            return web.Response(
+                status=400,
+                content_type="application/json",
+                text=json.dumps({"code": -1, "msg": str(exc)}),
+            )
         logger.info('offer sessionid=%s', sessionid)
         avatar_session = session_manager.get_session(sessionid)
 
@@ -63,6 +73,7 @@ class RTCManager:
             configuration=RTCConfiguration(iceServers=[ice_server])
         )
         self.pcs.add(pc)
+        self.session_pcs[sessionid] = pc
 
         @pc.on("connectionstatechange")
         async def on_connectionstatechange():
@@ -70,6 +81,7 @@ class RTCManager:
             if pc.connectionState in ("failed", "closed"):
                 await pc.close()
                 self.pcs.discard(pc)
+                self.session_pcs.pop(sessionid, None)
                 session_manager.remove_session(sessionid)
 
         # 添加发送轨道
@@ -86,10 +98,21 @@ class RTCManager:
         transceiver = pc.getTransceivers()[1]
         transceiver.setCodecPreferences(preferences)
 
-        await pc.setRemoteDescription(offer)
-
-        answer = await pc.createAnswer()
-        await pc.setLocalDescription(answer)
+        try:
+            await pc.setRemoteDescription(offer)
+            answer = await pc.createAnswer()
+            await pc.setLocalDescription(answer)
+        except Exception as exc:
+            logger.exception("WebRTC negotiation failed: sessionid=%s", sessionid)
+            await pc.close()
+            self.pcs.discard(pc)
+            self.session_pcs.pop(sessionid, None)
+            session_manager.remove_session(sessionid)
+            return web.Response(
+                status=400,
+                content_type="application/json",
+                text=json.dumps({"code": -1, "msg": f"webrtc_negotiation_failed: {exc}"}),
+            )
 
         return web.Response(
             content_type="application/json",
@@ -97,6 +120,7 @@ class RTCManager:
                 "sdp": pc.localDescription.sdp,
                 "type": pc.localDescription.type,
                 "sessionid": sessionid,
+                "avatar": getattr(avatar_session.opt, "avatar_id", ""),
             }),
         )
 
@@ -136,3 +160,15 @@ class RTCManager:
         coros = [pc.close() for pc in self.pcs]
         await asyncio.gather(*coros)
         self.pcs.clear()
+        self.session_pcs.clear()
+        for item in session_manager.list_sessions():
+            session_manager.remove_session(item["sessionid"])
+
+    async def close_session(self, sessionid: str) -> bool:
+        pc = self.session_pcs.pop(sessionid, None)
+        if pc is None:
+            return False
+        await pc.close()
+        self.pcs.discard(pc)
+        session_manager.remove_session(sessionid)
+        return True

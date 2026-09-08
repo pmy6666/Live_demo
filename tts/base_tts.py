@@ -33,7 +33,10 @@ class BaseTTS:
 
     def put_msg_txt(self, msg: str, datainfo: dict = {}): 
         if len(msg) > 0:
-            self.msgqueue.put((msg, datainfo))
+            payload = dict(datainfo or {})
+            if self.parent is not None:
+                payload.setdefault("playback_id", self.parent.current_playback_token())
+            self.msgqueue.put((msg, payload))
 
     def render(self, quit_event):
         process_thread = Thread(target=self.process_tts, args=(quit_event,))
@@ -45,6 +48,9 @@ class BaseTTS:
                 msg: tuple[str, dict] = self.msgqueue.get(block=True, timeout=1)
                 self.state = State.RUNNING
             except queue.Empty:
+                continue
+            playback_id = msg[1].get("playback_id")
+            if playback_id is not None and not self.parent.playback_controller.is_current(int(playback_id)):
                 continue
             self.txt_to_audio(msg)
         self.stop_tts()

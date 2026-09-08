@@ -17,6 +17,9 @@
 [wav2lip效果](https://www.bilibili.com/video/BV1scwBeyELA/) | [ernerf效果](https://www.bilibili.com/video/BV1G1421z73r/) | [musetalk效果](https://www.bilibili.com/video/BV1bUwezvEnG/)  
 国内镜像地址:<https://gitee.com/lipku/LiveTalking> 
 
+> 本仓库定版的 AvatarForcing Talking-only Demo，请按
+> [最终发布与全新环境复现文档](docs/avatarforcing_final_release.md) 安装；不要使用下方通用模型安装步骤替代该定版流程。
+
 ## 为避免与3d数字人混淆，原项目metahuman-stream改名为livetalking，原有链接地址继续可用
 
 ## Features
@@ -145,7 +148,7 @@ graph TD
 ```
 docker run --gpus all -it --network=host --rm registry.cn-beijing.aliyuncs.com/codewithgpu2/lipku-metahuman-stream:2K9qaMBu8v
 ```
-代码在/root/metahuman-stream，先git pull拉一下最新代码，然后执行命令同第2、3步 
+代码在项目根目录，先 git pull 拉一下最新代码，然后执行命令同第2、3步。
 
 提供如下网络镜像
 - ucloud镜像: <https://www.compshare.cn/images/4458094e-a43d-45fe-9b57-de79253befe4?referral_code=3XW3852OBmnD089hMMrtuU&ytag=GPU_GitHub_livetalking>  
@@ -196,4 +199,3 @@ wav2lip256显卡3060以上即可，musetalk需要3080Ti以上。
 * Email: lipku@foxmail.com  
 * 微信公众号：数字人技术    
 <img src="./assets/qrcode-wechat.jpg" align="middle" />
-

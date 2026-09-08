@@ -1,0 +1,2 @@
+# Patch artifacts preserve the exact whitespace of pinned third-party sources.
+*.patch whitespace=-trailing-space,-space-before-tab

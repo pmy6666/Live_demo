@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://livetalking.local/schemas/choice_graph_v2.json",
+  "type": "object",
+  "required": ["schema_version", "graph_id", "graph_version", "virtual_root", "entry_pool", "nodes", "edges", "transition_policy"],
+  "properties": {
+    "schema_version": {"const": "choice_graph_v2"},
+    "graph_id": {"type": "string", "minLength": 1},
+    "graph_version": {"type": "string", "minLength": 1},
+    "virtual_root": {"type": "string", "minLength": 1},
+    "entry_pool": {"type": "array", "minItems": 20, "maxItems": 20, "uniqueItems": true, "items": {"type": "string"}},
+    "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+    "edges": {"type": "array", "items": {"$ref": "#/$defs/edge"}},
+    "transition_policy": {"type": "object"}
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["node_id", "topic_id", "round_in_topic", "question_text", "answer_text", "tts_text", "enabled"],
+      "properties": {
+        "node_id": {"type": "string"},
+        "topic_id": {"type": "string"},
+        "round_in_topic": {"type": "integer", "minimum": 1, "maximum": 5},
+        "question_text": {"type": "string", "minLength": 1},
+        "answer_text": {"type": "string", "minLength": 1},
+        "tts_text": {"type": "string", "minLength": 1},
+        "enabled": {"type": "boolean"}
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["edge_id", "from_node_id", "to_node_id", "edge_type", "enabled"],
+      "properties": {
+        "edge_type": {"enum": ["continue", "deepen", "practical", "soft_bridge", "topic_transfer", "restart"]}
+      }
+    }
+  }
+}

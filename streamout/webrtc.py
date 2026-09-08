@@ -23,13 +23,23 @@ class WebRTCOutput(BaseOutput):
         """WebRTC 输出由 rtc_manager 管理，此处无需额外启动"""
         pass
 
-    def push_video_frame(self, frame) -> None:
+    def push_video_frame(self, frame, playback_id=None) -> None:
         if self._player:
-            self._player.push_video(frame)
+            if playback_id is None and self.parent is not None:
+                playback_id = self.parent.current_playback_token()
+            self._player.push_video(frame, playback_id=playback_id)
 
-    def push_audio_frame(self, frame, eventpoint=None) -> None:
+    def push_audio_frame(self, frame, eventpoint=None, playback_id=None) -> None:
         if self._player:
-            self._player.push_audio(frame, eventpoint)
+            if playback_id is None:
+                playback_id = (eventpoint or {}).get("playback_id")
+            if playback_id is None and self.parent is not None:
+                playback_id = self.parent.current_playback_token()
+            self._player.push_audio(frame, eventpoint, playback_id=playback_id)
+
+    def invalidate_playback(self, playback_id: int) -> None:
+        if self._player and hasattr(self._player, "invalidate_playback"):
+            self._player.invalidate_playback(playback_id)
 
 
 

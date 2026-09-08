@@ -17,6 +17,9 @@ A real-time interactive streaming digital human system enabling synchronized aud
 [wav2lip Demo](https://youtu.be/-ss0H8qLr7E) | [ernerf Demo](https://www.bilibili.com/video/BV1G1421z73r/) | [musetalk Demo](https://youtu.be/vzUMruoZlxc/)  
 Domestic Mirror Repository: <https://gitee.com/lipku/LiveTalking> 
 
+> For the repository's pinned AvatarForcing Talking-only demo, follow the
+> [final release and clean-machine guide](docs/avatarforcing_final_release.md).
+
 
 ## Features
 1. Supports multiple digital human models: ernerf, musetalk, wav2lip, Ultralight-Digital-Human.
@@ -147,7 +150,7 @@ No prior installation is required; run directly with Docker:
 ```
 docker run --gpus all -it --network=host --rm registry.cn-zhangjiakou.aliyuncs.com/codewithgpu3/lipku-livetalking:toza2irpHZ
 ```
-The code is located in `/root/livetalking`. First run `git pull` to fetch the latest code, then execute commands as described in Sections 2 and 3.
+From the project root, run `git pull` first, then execute the commands described in Sections 2 and 3.
 
 The following images are available:
 - AutoDL Image: <https://www.codewithgpu.com/i/lipku/livetalking/base>   

@@ -13,6 +13,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+#  start: python app.py --transport webrtc --model wav2lip --avatar_id wav2lip256_avatar1
 ###############################################################################
 
 # server.py
@@ -37,16 +38,21 @@ from aiortc.rtcrtpsender import RTCRtpSender
 from server.webrtc import HumanPlayer
 from avatars.base_avatar import BaseAvatar
 from llm import llm_response
+from choice import ChoiceOrchestrator
+from choice.avatar_profiles import apply_avatar_profile, get_avatar_profile
+from choice.voice_profiles import apply_voice_profile
 import registry
 from server.routes import setup_routes
 from server.rtc_manager import RTCManager
 from server.session_manager import session_manager
+from server.camera_capture_manager import CameraCaptureError, CameraCaptureManager
 
 import argparse
 import random
 import shutil
 import asyncio
 import torch
+import os
 from io import BytesIO
 from typing import Dict
 from utils.logger import logger
@@ -58,7 +64,10 @@ app = Flask(__name__)
 #sockets = Sockets(app)
 opt = None
 model = None
+warm_up = None
 global_avatars = {} # avatar_id: payload
+camera_capture_manager = None
+choice_orchestrator = None
         
 
 #####webrtc###############################
@@ -78,17 +87,82 @@ def build_avatar_session(sessionid:str, params:dict)->BaseAvatar:
     avatar_id = params.get('avatar',opt.avatar_id) 
     ref_audio = params.get('refaudio','') #音色
     ref_text = params.get('reftext','')
+    opt_this.avatar_id = avatar_id
+
+    if avatar_id == "avatarforcing_camera":
+        if opt.model != "avatarforcing":
+            raise RuntimeError("avatarforcing_camera_requires_avatarforcing_model")
+        capture_id = str(params.get("capture_id", "")).strip()
+        if not capture_id:
+            raise CameraCaptureError("capture_id_required")
+        record = camera_capture_manager.claim(capture_id, sessionid)
+        try:
+            choice_orchestrator.require_avatarforcing_cache_group(
+                record.voice_group,
+                "daily_chat",
+            )
+            opt_this.voice_group = record.voice_group
+            opt_this.choice_graph_id = "daily_chat"
+            opt_this.choice_tree_id = "daily_chat"
+            opt_this.conversation_mode = "offline_choice_only"
+            avatar_this = load_avatar_from_reference(
+                "avatarforcing_camera",
+                record.image_path,
+            )
+            warm_up(opt_this, model, avatar_this)
+            avatar_session = registry.create(
+                "avatar",
+                opt.model,
+                opt=opt_this,
+                model=model,
+                avatar=avatar_this,
+            )
+            cleaned = [False]
+
+            def cleanup_camera_session():
+                if cleaned[0]:
+                    return
+                cleaned[0] = True
+                camera_capture_manager.destroy(
+                    capture_id,
+                    owner_sessionid=sessionid,
+                )
+
+            avatar_session._session_cleanup = cleanup_camera_session
+            return avatar_session
+        except Exception:
+            camera_capture_manager.release_claim(capture_id, sessionid)
+            raise
+
+    avatar_profile = apply_avatar_profile(opt_this, avatar_id)
     if (avatar_id and avatar_id != opt.avatar_id):
         # Avoid reloading if already cached globally
         if avatar_id not in global_avatars:
             global_avatars[avatar_id] = load_avatar(avatar_id)
+            if opt.model == "avatarforcing":
+                warm_up(opt_this, model, global_avatars[avatar_id])
         avatar_this = global_avatars[avatar_id]
     else:
         # Default avatar loaded at startup
         avatar_this = global_avatars.get(opt.avatar_id)
+    loaded_avatar_id = getattr(avatar_this, "avatar_id", "")
+    if loaded_avatar_id and loaded_avatar_id != avatar_id:
+        raise RuntimeError(
+            f"avatar cache mismatch: requested={avatar_id}, "
+            f"loaded={loaded_avatar_id}"
+        )
     if ref_audio: #请求参数配置了参考音频
         opt_this.REF_FILE = ref_audio
         opt_this.REF_TEXT = ref_text
+    elif not avatar_profile:
+        voice_profile = apply_voice_profile(opt_this, avatar_id)
+        if voice_profile:
+            logger.info(
+                "apply avatar voice profile: avatar=%s profile=%s ref_file=%s",
+                avatar_id,
+                voice_profile["profile"],
+                voice_profile["ref_file"],
+            )
     custom_config=params.get('custom_config','') #动作编排配置
     if custom_config:
         opt_this.customopt = json.loads(custom_config)
@@ -105,7 +179,8 @@ async def on_shutdown(app):
 
 
 def main():
-    global rtc_manager, opt, model,load_avatar
+    global rtc_manager, opt, model, load_avatar, load_avatar_from_reference
+    global warm_up, camera_capture_manager, choice_orchestrator
     # 解析命令行参数
     from config import parse_args
     opt = parse_args()
@@ -115,11 +190,18 @@ def main():
         'musetalk':   'avatars.musetalk_avatar',
         'wav2lip':    'avatars.wav2lip_avatar',
         'ultralight': 'avatars.ultralight_avatar',
+        'echomimicv3': 'avatars.echomimicv3_avatar',
+        'avatarforcing': 'avatars.avatarforcing_avatar',
     }
     import importlib
     avatar_mod = importlib.import_module(_avatar_modules[opt.model])
     load_model = avatar_mod.load_model
     load_avatar = avatar_mod.load_avatar
+    load_avatar_from_reference = getattr(
+        avatar_mod,
+        "load_avatar_from_reference",
+        None,
+    )
     warm_up = avatar_mod.warm_up
     logger.info(opt)
 
@@ -135,9 +217,29 @@ def main():
         model = load_model(opt)
         global_avatars[opt.avatar_id] = load_avatar(opt.avatar_id)
         warm_up(opt.batch_size,global_avatars[opt.avatar_id],160)
+    elif opt.model == 'echomimicv3':
+        if getattr(opt, 'echomimicv3_cache_only', False):
+            model = None
+            logger.info('EchoMimicV3 cache-only mode: inference model loading skipped')
+        else:
+            model = load_model(opt)
+        global_avatars[opt.avatar_id] = load_avatar(opt.avatar_id)
+        if model is not None:
+            warm_up(opt, model, global_avatars[opt.avatar_id])
+    elif opt.model == 'avatarforcing':
+        model = load_model(opt)
+        global_avatars[opt.avatar_id] = load_avatar(opt.avatar_id)
+        warm_up(opt, model, global_avatars[opt.avatar_id])
+
+    if opt.model == "avatarforcing":
+        camera_capture_manager = CameraCaptureManager(
+            validator=model.prepare_avatar,
+            reference_releaser=model.release_avatar,
+        )
 
     # init rtc manager
-    session_manager.init_builder(build_avatar_session)
+    choice_orchestrator = ChoiceOrchestrator(os.path.dirname(os.path.abspath(__file__)))
+    session_manager.init_builder(build_avatar_session, max_sessions=opt.max_session)
     rtc_manager = RTCManager(opt)
     # share avatar_sessions (RTCManager handles it but routes.py expects it)
     
@@ -152,6 +254,10 @@ def main():
     #############################################################################
     appasync = web.Application(client_max_size=1024**2*100)
     appasync["llm_response"] = llm_response
+    appasync["choice_orchestrator"] = choice_orchestrator
+    appasync["runtime_model"] = opt.model
+    appasync["camera_capture_manager"] = camera_capture_manager
+    appasync["rtc_manager"] = rtc_manager
 
     appasync.on_shutdown.append(on_shutdown)
     appasync.router.add_post("/offer", offer)

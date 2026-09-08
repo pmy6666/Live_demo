@@ -1,0 +1,43 @@
+{
+  "schema_version": "avatar_profiles_v1",
+  "profiles": [
+    {
+      "avatar_id": "avatarforcing_female",
+      "display_name": "AvatarForcing 女性角色",
+      "description": "AvatarForcing Talking-only 女性角色",
+      "enabled": true,
+      "model": "avatarforcing",
+      "voice_group": "female",
+      "preview_image": "assets/avatars/avatar_female.png",
+      "reference_image": "assets/avatars/avatar_female.png",
+      "voice": {
+        "tts": "gpt-sovits",
+        "profile": "female",
+        "ref_file": "bilibili_downloads/Female.wav",
+        "ref_text": "您好，我是你的专属数字人，很高兴能和你聊天，我们今天聊些什么呢？"
+      },
+      "choice": {
+        "graph_id": "daily_chat"
+      }
+    },
+    {
+      "avatar_id": "avatarforcing_male",
+      "display_name": "AvatarForcing 男性角色",
+      "description": "AvatarForcing Talking-only 男性角色",
+      "enabled": true,
+      "model": "avatarforcing",
+      "voice_group": "male",
+      "preview_image": "assets/avatars/avatar_male.png",
+      "reference_image": "assets/avatars/avatar_male.png",
+      "voice": {
+        "tts": "gpt-sovits",
+        "profile": "male",
+        "ref_file": "bilibili_downloads/male.mp3",
+        "ref_text": "你好，我是你的专属数字人，很高兴能和你聊天，你今天吃了什么呀？"
+      },
+      "choice": {
+        "graph_id": "daily_chat"
+      }
+    }
+  ]
+}

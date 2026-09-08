@@ -4,6 +4,7 @@
 
 import asyncio
 import uuid
+import time
 from typing import Dict, Optional
 from utils.logger import logger
 from avatars.base_avatar import BaseAvatar
@@ -28,12 +29,17 @@ class SessionManager:
     def __init__(self):
         if not hasattr(self, "initialized"):
             self.sessions: Dict[str, BaseAvatar] = {}
+            self.created_at: Dict[str, float] = {}
             self.build_session_fn = None
+            self.max_sessions = 0
+            self._create_lock = None
             self.initialized = True
 
-    def init_builder(self, build_session_fn):
+    def init_builder(self, build_session_fn, max_sessions: int = 0):
         """配置用于构建 avatar_session 的工厂函数"""
         self.build_session_fn = build_session_fn
+        self.max_sessions = max(0, int(max_sessions or 0))
+        self._create_lock = asyncio.Lock()
         
     def get_session(self, sessionid: str) -> Optional[BaseAvatar]:
         """获取已存活的会话"""
@@ -51,30 +57,75 @@ class SessionManager:
         if self.build_session_fn is None:
             raise Exception("SessionManager builder not initialized")
             
-        if sessionid is None:
-            sessionid = _rand_session_id()
-            
-        logger.info('Creating sessionid=%s, current session num=%d', sessionid, len(self.sessions))
-        # 预先占位防止重复
-        self.sessions[sessionid] = None
+        if self._create_lock is None:
+            self._create_lock = asyncio.Lock()
+        async with self._create_lock:
+            if self.max_sessions and len(self.sessions) >= self.max_sessions:
+                raise RuntimeError(
+                    f"maximum session limit reached ({self.max_sessions})"
+                )
+            if sessionid is None:
+                sessionid = _rand_session_id()
 
-        # 在线程池中构建 session（加载模型非常耗时）
-        avatar_session = await asyncio.get_event_loop().run_in_executor(
-            None, self.build_session_fn, sessionid, params
-        )
-        self.sessions[sessionid] = avatar_session
-        return sessionid
+            logger.info('Creating sessionid=%s, current session num=%d', sessionid, len(self.sessions))
+            # Reserve the slot before the expensive threaded constructor runs.
+            self.sessions[sessionid] = None
+            self.created_at[sessionid] = time.time()
+
+            try:
+                avatar_session = await asyncio.get_event_loop().run_in_executor(
+                    None, self.build_session_fn, sessionid, params
+                )
+            except Exception:
+                self.sessions.pop(sessionid, None)
+                self.created_at.pop(sessionid, None)
+                raise
+            self.sessions[sessionid] = avatar_session
+            return sessionid
         
     def add_session(self, sessionid: str, avatar_session: BaseAvatar):
         """同步添加静态或外部管理的会话（供非服务端入口调用）"""
         self.sessions[sessionid] = avatar_session
+        self.created_at[sessionid] = time.time()
         
     def remove_session(self, sessionid: str):
         """销毁会话资源"""
         if sessionid in self.sessions:
             logger.info(f"Removing session {sessionid}")
-            # todo: 还可以主动调 avatar_session 释放
-            self.sessions.pop(sessionid, None)
+            avatar_session = self.sessions.pop(sessionid, None)
+            self.created_at.pop(sessionid, None)
+            if avatar_session is None:
+                return
+            try:
+                avatar_session.flush_talk(reason="session_cleanup")
+            except Exception:
+                logger.exception("session playback cleanup failed: %s", sessionid)
+            cleanup = getattr(avatar_session, "_session_cleanup", None)
+            if cleanup is not None:
+                try:
+                    cleanup()
+                except Exception:
+                    logger.exception("session resource cleanup failed: %s", sessionid)
+
+    def list_sessions(self):
+        """返回当前会话列表，供外部工具自动发现 active sessionid。"""
+        items = []
+        for sessionid, avatar_session in self.sessions.items():
+            items.append(
+                {
+                    "sessionid": sessionid,
+                    "ready": avatar_session is not None,
+                    "created_at": self.created_at.get(sessionid, 0),
+                }
+            )
+        items.sort(key=lambda item: item["created_at"], reverse=True)
+        return items
+
+    def latest_ready_sessionid(self) -> Optional[str]:
+        for item in self.list_sessions():
+            if item["ready"]:
+                return item["sessionid"]
+        return None
 
 # 单例抛出
 session_manager = SessionManager()

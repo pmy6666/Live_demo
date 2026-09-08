@@ -1,0 +1,165 @@
+diff --git a/inference_talking_only.py b/inference_talking_only.py
+new file mode 100644
+index 0000000..fce8adc
+--- /dev/null
++++ b/inference_talking_only.py
+@@ -0,0 +1,159 @@
++"""Talking-only inference for Avatar Forcing.
++
++This entry point conditions generation only on the avatar reference image and
++avatar speech. User audio and user motion are deliberately omitted.
++"""
++
++import argparse
++import os
++import time
++import uuid
++from pathlib import Path
++
++import torch
++from omegaconf import OmegaConf
++
++from inference import InferenceAgent, seed_everything
++
++
++AVATARFORCING_ROOT = Path(__file__).resolve().parent
++LIVETALKING_ROOT = AVATARFORCING_ROOT.parent
++DEFAULT_IMAGE = str(LIVETALKING_ROOT / "assets" / "avatars" / "avatar_male.png")
++DEFAULT_AUDIO = str(AVATARFORCING_ROOT / "data" / "avatar.wav")
++
++
++def parse_args():
++    parser = argparse.ArgumentParser(
++        description="Generate a talking-only avatar from one image and one speech file."
++    )
++    parser.add_argument("--infer_config", default="configs/inference.yaml")
++    parser.add_argument(
++        "--mae_ckpt_path", default="pretrained_dir/motion_autoencoder.pth"
++    )
++    parser.add_argument(
++        "--ckpt_path", default="pretrained_dir/flow_transformer.pth"
++    )
++    parser.add_argument("--avatar_ref_path", default=DEFAULT_IMAGE)
++    parser.add_argument("--avatar_audio_path", default=DEFAULT_AUDIO)
++    parser.add_argument("--result_dir", default="results/talking_only")
++    parser.add_argument(
++        "--output_path",
++        default=None,
++        help="Output MP4 path. By default, a unique name is created in result_dir.",
++    )
++    parser.add_argument("--seed", type=int, default=20)
++    parser.add_argument("--nfe", type=int, default=10)
++    parser.add_argument("--a_cfg_scale", type=float, default=2.0)
++    parser.add_argument("--pad_ratio", type=float, default=1.0)
++    return parser.parse_args()
++
++
++def require_file(path, label):
++    if not os.path.isfile(path):
++        raise FileNotFoundError(f"{label} does not exist: {path}")
++
++
++def synchronize_cuda():
++    if torch.cuda.is_available():
++        torch.cuda.synchronize()
++
++
++def preprocess_talking_only(agent, image_path, audio_path, pad_ratio):
++    processor = agent.data_processor
++    max_len_sr = int(30 * processor.sampling_rate)
++
++    avatar_audio = (
++        processor.default_aud_loader(audio_path)[:max_len_sr].unsqueeze(0)
++    )
++    avatar_ref = processor.preprocess_face(image_path, pad_ratio=pad_ratio)
++    avatar_ref = processor.transform(image=avatar_ref)["image"].unsqueeze(0)
++
++    return {
++        "avatar_ref": avatar_ref,
++        "avatar_a": avatar_audio,
++        "talking_only": True,
++    }
++
++
++def main():
++    cli_args = parse_args()
++    total_start = time.perf_counter()
++
++    require_file(cli_args.infer_config, "Inference config")
++    require_file(cli_args.mae_ckpt_path, "Motion autoencoder checkpoint")
++    require_file(cli_args.ckpt_path, "Flow transformer checkpoint")
++    require_file(cli_args.avatar_ref_path, "Avatar image")
++    require_file(cli_args.avatar_audio_path, "Avatar audio")
++    if not torch.cuda.is_available():
++        raise RuntimeError("CUDA GPU is required for Avatar Forcing inference.")
++
++    seed_everything(cli_args.seed)
++    infer_config = OmegaConf.load(cli_args.infer_config)
++    opt = OmegaConf.merge(infer_config, OmegaConf.create(vars(cli_args)))
++    opt.rank, opt.ngpus = 0, 1
++
++    load_start = time.perf_counter()
++    agent = InferenceAgent(opt)
++    synchronize_cuda()
++    model_load_seconds = time.perf_counter() - load_start
++
++    preprocess_start = time.perf_counter()
++    data = preprocess_talking_only(
++        agent,
++        cli_args.avatar_ref_path,
++        cli_args.avatar_audio_path,
++        cli_args.pad_ratio,
++    )
++    preprocess_seconds = time.perf_counter() - preprocess_start
++
++    synchronize_cuda()
++    inference_start = time.perf_counter()
++    with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
++        output = agent.G.inference(
++            data=data,
++            a_cfg_scale=cli_args.a_cfg_scale,
++            u_cfg_scale=0.0,
++            nfe=cli_args.nfe,
++            seed=cli_args.seed,
++            use_kv_cache=True,
++        )
++    synchronize_cuda()
++    inference_seconds = time.perf_counter() - inference_start
++
++    os.makedirs(cli_args.result_dir, exist_ok=True)
++    if cli_args.output_path:
++        output_path = cli_args.output_path
++        output_parent = os.path.dirname(os.path.abspath(output_path))
++        os.makedirs(output_parent, exist_ok=True)
++    else:
++        avatar_name = os.path.splitext(os.path.basename(cli_args.avatar_ref_path))[0]
++        output_path = os.path.join(
++            cli_args.result_dir,
++            f"{avatar_name}-talking-seed{cli_args.seed}-{uuid.uuid4().hex[:10]}.mp4",
++        )
++
++    encode_start = time.perf_counter()
++    agent.save_video(output["d_hat"], output_path, cli_args.avatar_audio_path)
++    encode_seconds = time.perf_counter() - encode_start
++    total_seconds = time.perf_counter() - total_start
++
++    generated_frames = int(output["d_hat"].shape[0])
++    generated_duration = generated_frames / float(opt.fps)
++    generation_fps = generated_frames / inference_seconds
++    realtime_factor = inference_seconds / generated_duration
++
++    print("\n=== Talking-only inference timing ===")
++    print(f"Model loading:       {model_load_seconds:.3f} s")
++    print(f"Input preprocessing: {preprocess_seconds:.3f} s")
++    print(f"Model inference:     {inference_seconds:.3f} s")
++    print(f"Video encoding:      {encode_seconds:.3f} s")
++    print(f"Total elapsed:       {total_seconds:.3f} s")
++    print(f"Generated frames:    {generated_frames}")
++    print(f"Video duration:      {generated_duration:.3f} s")
++    print(f"Generation FPS:      {generation_fps:.3f}")
++    print(f"Realtime factor:     {realtime_factor:.3f}x")
++    print(f"Output video:        {os.path.abspath(output_path)}")
++
++
++if __name__ == "__main__":
++    main()

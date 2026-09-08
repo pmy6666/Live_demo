@@ -128,7 +128,14 @@ class PlayerStreamTrack(MediaStreamTrack):
         #     else:
         while True:
             try:
-                frame, eventpoint = self._queue.get_nowait()
+                item = self._queue.get_nowait()
+                if len(item) == 3:
+                    frame, eventpoint, playback_id = item
+                else:
+                    frame, eventpoint = item
+                    playback_id = self._player.current_playback_id if self._player else 0
+                if self._player is not None and playback_id < self._player.current_playback_id:
+                    continue
                 break
             except queue.Empty:
                 await asyncio.sleep(0.005)
@@ -184,20 +191,45 @@ class HumanPlayer:
         self.__video = PlayerStreamTrack(self, kind="video")
 
         self.__container = avatar_session
+        self.current_playback_id = avatar_session.current_playback_token()
         if hasattr(self.__container, 'output'):
             self.__container.output._player = self
 
-    def push_video(self, frame):
+    def push_video(self, frame, playback_id=None):
         from av import VideoFrame
+        playback_id = self.current_playback_id if playback_id is None else int(playback_id)
+        if playback_id < self.current_playback_id:
+            return
         new_frame = VideoFrame.from_ndarray(frame, format="bgr24")
-        self.__video._queue.put((new_frame, None))
+        self.__video._queue.put((new_frame, None, playback_id))
 
-    def push_audio(self, frame, eventpoint=None):
+    def push_audio(self, frame, eventpoint=None, playback_id=None):
         from av import AudioFrame
+        playback_id = self.current_playback_id if playback_id is None else int(playback_id)
+        if playback_id < self.current_playback_id:
+            return
         new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
         new_frame.planes[0].update(frame.tobytes())
         new_frame.sample_rate = 16000
-        self.__audio._queue.put((new_frame, eventpoint))
+        self.__audio._queue.put((new_frame, eventpoint, playback_id))
+
+    def invalidate_playback(self, playback_id: int):
+        self.current_playback_id = max(self.current_playback_id, int(playback_id))
+        for track in (self.__audio, self.__video):
+            retained = []
+            while True:
+                try:
+                    item = track._queue.get_nowait()
+                except queue.Empty:
+                    break
+                item_playback_id = item[2] if len(item) == 3 else 0
+                if item_playback_id >= self.current_playback_id:
+                    retained.append(item)
+            for item in retained:
+                try:
+                    track._queue.put_nowait(item)
+                except queue.Full:
+                    break
 
     def get_buffer_size(self) -> int:
         return self.__video._queue.qsize()
