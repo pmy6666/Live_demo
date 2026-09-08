@@ -1,5 +1,8 @@
 # AvatarForcing 最终 Demo 发布与复现
 
+如果只需在全新服务器上创建环境并运行，请直接使用
+[环境创建与运行指令](avatarforcing_environment_setup.md)。
+
 本文只描述以下最终入口，不包含 EchoMimicV3、LatentSync、MuseTalk 或 GPT-SoVITS 在线服务：
 
 ```bash
@@ -25,8 +28,11 @@ cd /home/qianustb/LiveTalking
 ```bash
 git clone https://github.com/pmy6666/Live_demo.git LiveTalking
 cd LiveTalking
-bash scripts/avatarforcing/setup_env.sh
+bash scripts/avatarforcing/prepare_final_demo.sh
 ```
+
+该一键脚本包含环境创建、权重下载与文件校验。若希望分步执行，可先运行
+`scripts/avatarforcing/setup_env.sh`，再按下一节下载权重。
 
 默认环境位置是仓库同级的 `envs/livetalking`。如需其他位置：
 

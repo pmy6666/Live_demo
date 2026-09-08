@@ -8,6 +8,8 @@ config.py
 registry.py
 llm.py
 requirements-avatarforcing.txt
+docs/avatarforcing_environment_setup.md
+docs/avatarforcing_final_release.md
 
 avatars/__init__.py
 avatars/base_avatar.py
@@ -70,6 +72,7 @@ release/avatarforcing/manifest.json
 release/avatarforcing/patches/avatarforcing-runtime.patch
 release/avatarforcing/patches/avatarforcing-talking-only.patch
 scripts/avatarforcing/setup_env.sh
+scripts/avatarforcing/prepare_final_demo.sh
 scripts/avatarforcing/download_weights.sh
 scripts/avatarforcing/package_runtime_cache.sh
 scripts/avatarforcing/build_avatarforcing_tts_cache.py

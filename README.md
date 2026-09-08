@@ -18,7 +18,8 @@
 国内镜像地址:<https://gitee.com/lipku/LiveTalking> 
 
 > 本仓库定版的 AvatarForcing Talking-only Demo，请按
-> [最终发布与全新环境复现文档](docs/avatarforcing_final_release.md) 安装；不要使用下方通用模型安装步骤替代该定版流程。
+> [环境创建与运行指令](docs/avatarforcing_environment_setup.md) 安装；版本固定与发布细节见
+> [最终发布与全新环境复现文档](docs/avatarforcing_final_release.md)。不要使用下方通用模型安装步骤替代该定版流程。
 
 ## 为避免与3d数字人混淆，原项目metahuman-stream改名为livetalking，原有链接地址继续可用
 
